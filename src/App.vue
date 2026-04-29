@@ -1,6 +1,6 @@
 <template>
   <div class="app-shell">
-    <AppSidebar />
+    <AppSidebar v-if="$route.name !== 'login'" />
     <div class="app-main">
       <router-view v-slot="{ Component }">
         <transition name="page-fade" mode="out-in">

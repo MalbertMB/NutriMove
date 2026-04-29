@@ -26,8 +26,8 @@
           <h3 class="tip-title">{{ tip.title }}</h3>
           <p class="tip-body">{{ tip.body }}</p>
           <div class="tip-actions">
-            <button class="tip-btn tip-btn--primary">Aplica el consell</button>
-            <button class="tip-btn tip-btn--ghost">Ara no</button>
+            <button class="tip-btn tip-btn--primary" @click="applyTip(tip)">Aplica el consell</button>
+            <button class="tip-btn tip-btn--ghost" @click="ignoreTip(tip)">Ara no</button>
           </div>
         </div>
       </div>
@@ -51,32 +51,100 @@
 </template>
 
 <script setup>
+import { computed, ref } from 'vue'
 import AppTopBar from '@/components/layout/AppTopBar.vue'
+import { useWeekStore } from '@/stores/weekStore'
+import { useUIStore } from '@/stores/uiStore'
 
-const tips = [
-  {
-    id: 1, type: 'nutrition', icon: 'restaurant', tag: 'Nutrició',
-    title: 'Augmenta els hidrats pre-entrenament',
-    body: 'La teva sessió de ciclisme de 4h del dissabte requereix una càrrega glucèmica superior. Afegeix 60g de pasta o arròs al sopar del divendres per optimitzar les reserves de glucogen.'
-  },
-  {
-    id: 2, type: 'recovery', icon: 'bedtime', tag: 'Recuperació',
-    title: 'Descans actiu recomanat pel dimecres',
-    body: 'Després de la sessió doble del dimecres detectem un risc de fatiga acumulada. Un dia de recuperació activa (ioga o natació suau) maximitzaria el rendiment del dijous.'
-  },
-  {
-    id: 3, type: 'performance', icon: 'trending_up', tag: 'Rendiment',
-    title: 'Proteïna post-entrenament infrasuficient',
-    body: 'Basant-nos en les teves sessions de força, el teu consum proteic actual (~45g/dia) és inferior al recomanat. Considera afegir una font proteica addicional al berenar.'
+const weekStore = useWeekStore()
+const uiStore = useUIStore()
+const ignoredTips = ref([])
+const history = ref([])
+
+const tips = computed(() => {
+  const list = []
+  const warningDays = weekStore.meals
+    .map((meal, day) => ({ meal, day }))
+    .filter(({ meal }) => meal.status === 'warning')
+
+  warningDays.slice(0, 3).forEach(({ day }) => {
+    list.push({
+      id: `meal-${day}`,
+      type: 'nutrition',
+      icon: 'restaurant',
+      tag: 'Nutricio',
+      title: `Ajust de carbohidrats per ${weekStore.daysFull[day]}`,
+      body: `Aquest dia te carrega alta. Aplica un increment nutricional automatic de 300 kcal al sopar per millorar la recuperacio.`,
+      action: 'apply-day',
+      day
+    })
+  })
+
+  if (warningDays.length >= 2) {
+    const days = warningDays.map(({ day }) => day)
+    list.push({
+      id: 'week-adjust',
+      type: 'recovery',
+      icon: 'auto_awesome',
+      tag: 'Planificacio',
+      title: 'Ajust nutricional per tota la setmana intensa',
+      body: 'S han detectat diversos dies exigents. Pots aplicar una adaptacio global de calories i carbohidrats als dies de carrega.',
+      action: 'apply-week',
+      startDay: Math.min(...days),
+      endDay: Math.max(...days)
+    })
   }
-]
 
-const history = [
-  { id: 1, label: 'Hidrats pre-ruta afegits', date: '15 abr', status: 'applied' },
-  { id: 2, label: 'Ajust sopar divendres', date: '12 abr', status: 'applied' },
-  { id: 3, label: 'Descans dimarts suggerit', date: '8 abr', status: 'ignored' },
-  { id: 4, label: '+15% kcal setmana intensa', date: '5 abr', status: 'applied' },
-]
+  if (!list.length) {
+    list.push({
+      id: 'stable-week',
+      type: 'performance',
+      icon: 'check_circle',
+      tag: 'Rendiment',
+      title: 'Setmana estable i ben compensada',
+      body: 'No hi ha desajustos importants detectats. Mantingues la mateixa estrategia de descans i hidratacio.',
+      action: 'none'
+    })
+  }
+
+  return list.filter(t => !ignoredTips.value.includes(t.id))
+})
+
+function applyTip(tip) {
+  if (tip.action === 'apply-day') {
+    weekStore.applyAIMealAdjustment(tip.day)
+    uiStore.showToast(`Ajust aplicat a ${weekStore.daysFull[tip.day]}.`, 'success')
+    addHistory(`Ajust diari: ${weekStore.daysFull[tip.day]}`, 'applied')
+  } else if (tip.action === 'apply-week') {
+    weekStore.applyAIWeekAdjustment(tip.startDay, tip.endDay)
+    uiStore.showToast('Ajust setmanal aplicat.', 'success')
+    addHistory('Ajust nutricional setmanal', 'applied')
+  } else {
+    uiStore.showToast('No cal aplicar canvis addicionals.', 'info')
+    addHistory('Consell de manteniment revisat', 'applied')
+  }
+
+  ignoredTips.value = [...ignoredTips.value, tip.id]
+}
+
+function ignoreTip(tip) {
+  ignoredTips.value = [...ignoredTips.value, tip.id]
+  addHistory(tip.title, 'ignored')
+  uiStore.showToast('Consell ignorat.', 'info')
+}
+
+function addHistory(label, status) {
+  history.value.unshift({
+    id: Date.now() + Math.random(),
+    label,
+    date: formatNow(),
+    status
+  })
+}
+
+function formatNow() {
+  return new Intl.DateTimeFormat('ca-ES', { day: 'numeric', month: 'short' }).format(new Date())
+}
 </script>
 
 <style scoped>

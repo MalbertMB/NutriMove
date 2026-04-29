@@ -28,9 +28,11 @@ nutrimove/
 ## Tasques implementades
 
 ### Tasca 1 — Actualitzar una sessió i confirmar l'ajust nutricional
+
 **Escenari:** En Pau actualitza la sessió de dissabte (ciclisme 2h → 4h Alta).
 
 **Passos per provar-ho:**
+
 1. Al Dashboard, fes clic al bloc **"🚴 Ciclisme"** del dia **Ds (Dissabte)**
 2. Al panell dret, augmenta la durada fins a **4h** (botó `+`)
 3. Assegura't que la intensitat és **Alta**
@@ -41,9 +43,11 @@ nutrimove/
 ---
 
 ### Tasca 2 — Planificar la setmana i obtenir el pla nutricional
+
 **Escenari:** En Pau planifica la setmana i afegeix una Sessió doble al dimecres.
 
 **Passos per provar-ho:**
+
 1. Al Dashboard, fes clic al botó **"+ Afegir"** del dia **Dc (Dimecres)**
 2. Selecciona el tipus **"⚡ Sessió doble"**
 3. Ajusta la durada i intensitat (ex: 3h, Alta)
@@ -57,14 +61,15 @@ nutrimove/
 
 ## Navegació de l'app
 
-| Secció     | Descripció |
-|------------|------------|
-| **Inici**  | Dashboard setmanal unificat (Sessions + Àpats) |
-| Sessions   | Placeholder — funcionalitat al dashboard |
-| Àpats      | Placeholder — integrat al dashboard |
-| Consells   | Placeholder — l'Assistent NutriMove |
-| Progrés    | Placeholder — gràfics de rendiment |
-| Jo (Pau)   | Perfil d'usuari |
+| Secció          | Descripció                                       |
+| --------------- | ------------------------------------------------ |
+| Inici de sessió | Login simple amb correu i contrasenya proposades |
+| Dashboard       | Dashboard setmanal unificat (Sessions + Àpats)   |
+| Sessions        | Placeholder — funcionalitat al dashboard         |
+| Àpats           | Placeholder — integrat al dashboard              |
+| Consells        | Placeholder — l'Assistent NutriMove              |
+| Progrés         | Placeholder — gràfics de rendiment               |
+| Jo (Pau)        | Perfil d'usuari                                  |
 
 ---
 
@@ -79,5 +84,6 @@ nutrimove/
 ---
 
 ## Grup AF1 — FHiC 25-26
+
 Adrià Suárez · Albert Marín · Artur Sardà  
 Advisor: Inmaculada Rodríguez

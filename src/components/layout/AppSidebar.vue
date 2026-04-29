@@ -35,11 +35,16 @@
       <div class="user-avatar" aria-hidden="true">P</div>
       <transition name="fade">
         <div v-if="!collapsed" class="user-info">
-          <span class="user-name">Pau Martínez</span>
-          <span class="user-meta">Mode Avançat</span>
+          <span class="user-name">{{ authStore.user?.name || 'Usuari' }}</span>
+          <span class="user-meta">{{ authStore.user?.email || 'Sense sessió' }}</span>
         </div>
       </transition>
     </div>
+
+    <button v-if="!collapsed" class="sidebar__logout" @click="handleLogout">
+      <span class="material-symbols-rounded">logout</span>
+      Tanca sessió
+    </button>
 
     <!-- Collapse toggle -->
     <button
@@ -54,17 +59,29 @@
 
 <script setup>
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/authStore'
+import { useUIStore } from '@/stores/uiStore'
 
 const collapsed = ref(false)
+const router = useRouter()
+const authStore = useAuthStore()
+const uiStore = useUIStore()
 
 const navItems = [
-  { to: '/inici', label: 'Inici', icon: 'home' },
+  { to: '/dashboard', label: 'Dashboard', icon: 'home' },
   { to: '/sessions', label: 'Sessions', icon: 'fitness_center' },
   { to: '/apats', label: 'Àpats', icon: 'restaurant' },
   { to: '/consells', label: 'Consells', icon: 'tips_and_updates' },
   { to: '/progres', label: 'Progrés', icon: 'trending_up' },
   { to: '/jo', label: 'Jo', icon: 'person' },
 ]
+
+function handleLogout() {
+  authStore.logout()
+  uiStore.showToast('Sessió tancada.', 'info')
+  router.push('/login')
+}
 </script>
 
 <style scoped>
@@ -214,4 +231,26 @@ const navItems = [
 }
 .sidebar__toggle:hover { color: rgba(255,255,255,0.7); }
 .sidebar__toggle .material-symbols-rounded { font-size: 18px; }
+
+.sidebar__logout {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 12px 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  color: rgba(255,255,255,0.8);
+  background: rgba(255,255,255,0.06);
+  transition: all var(--dur-fast);
+  font-size: 13px;
+}
+
+.sidebar__logout:hover {
+  color: #fff;
+  background: rgba(255,255,255,0.12);
+}
+
+.sidebar__logout .material-symbols-rounded {
+  font-size: 18px;
+}
 </style>

@@ -2,7 +2,7 @@
   <div class="dashboard">
     <!-- Topbar -->
     <AppTopBar
-      title="Inici"
+      title="Dashboard"
       :subtitle="weekLabel"
       :show-week-nav="true"
       :show-save="true"
