@@ -3,10 +3,12 @@
     <transition name="scale">
       <div
         v-if="uiStore.aiPopoverOpen && uiStore.aiPopoverContext"
+        ref="dialogRef"
         class="ai-popover-wrap"
         role="dialog"
         aria-modal="true"
         aria-label="Suggeriment de l'Assistent NutriMove"
+        @keydown.esc.prevent="dismiss"
       >
         <div class="ai-popover" @click.stop>
           <!-- Header -->
@@ -15,7 +17,7 @@
               <span class="material-symbols-rounded icon-fill">auto_awesome</span>
               Assistent NutriMove
             </div>
-            <button class="close-btn" @click="dismiss" aria-label="Tancar">
+            <button ref="closeBtnRef" class="close-btn" @click="dismiss" aria-label="Tancar">
               <span class="material-symbols-rounded">close</span>
             </button>
           </div>
@@ -51,7 +53,7 @@
             <button class="btn btn--ghost" @click="dismiss">Ara no</button>
             <button class="btn btn--primary" @click="applyAdjustment">
               <span class="material-symbols-rounded icon-fill">check_circle</span>
-              Aplica el canvi
+              Aplica el bloc IA
             </button>
           </div>
         </div>
@@ -64,14 +66,30 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import { useUIStore } from '@/stores/uiStore'
 import { useWeekStore } from '@/stores/weekStore'
 
 const uiStore = useUIStore()
 const weekStore = useWeekStore()
+const dialogRef = ref(null)
+const closeBtnRef = ref(null)
+let lastFocusedElement = null
 
 const ctx = computed(() => uiStore.aiPopoverContext || {})
+
+watch(() => uiStore.aiPopoverOpen, async (open) => {
+  if (open) {
+    lastFocusedElement = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    await nextTick()
+    closeBtnRef.value?.focus()
+    return
+  }
+
+  await nextTick()
+  lastFocusedElement?.focus?.()
+  lastFocusedElement = null
+})
 
 function formatDuration(mins) {
   if (!mins) return ''
@@ -147,7 +165,7 @@ function applyAdjustment() {
 .ai-badge .material-symbols-rounded { font-size: 18px; }
 .close-btn {
   width: 28px; height: 28px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   display: flex; align-items: center; justify-content: center;
   color: rgba(255,255,255,0.4);
   transition: all var(--dur-fast);
@@ -204,13 +222,13 @@ function applyAdjustment() {
   cursor: pointer; transition: all var(--dur-fast);
 }
 .btn--primary { background: var(--accent); color: var(--navy); }
-.btn--primary:hover { background: var(--accent-dark); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,200,150,0.3); }
+.btn--primary:hover { background: var(--accent-dark); transform: translateY(-1px); box-shadow: var(--shadow-accent); }
 .btn--ghost { background: transparent; color: var(--text-2); border: 1px solid var(--border); }
 .btn--ghost:hover { background: var(--surface-2); }
 .btn .material-symbols-rounded { font-size: 16px; }
 
 /* Transition */
 .scale-enter-active { animation: popoverIn 0.35s var(--ease-back) both; }
-.scale-leave-active { transition: opacity 0.2s ease, transform 0.2s ease; }
+.scale-leave-active { transition: opacity var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease); }
 .scale-leave-to { opacity: 0; transform: scale(0.95); }
 </style>

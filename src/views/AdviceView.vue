@@ -1,8 +1,14 @@
 <template>
   <div class="advice-view">
     <AppTopBar title="Consells" subtitle="Recomanacions personalitzades de l'Assistent NutriMove" />
+    <SectionNav
+      :items="[
+        { label: 'Notificació predictiva', target: 'predictive-tips', icon: 'notifications_active' },
+        { label: 'Historial de consells', target: 'advice-history', icon: 'history' }
+      ]"
+    />
     <div class="advice-content">
-      <div class="advice-list">
+      <div id="predictive-tips" class="advice-list" tabindex="-1">
         <div
           v-for="tip in tips"
           :key="tip.id"
@@ -26,14 +32,14 @@
           <h3 class="tip-title">{{ tip.title }}</h3>
           <p class="tip-body">{{ tip.body }}</p>
           <div class="tip-actions">
-            <button class="tip-btn tip-btn--primary" @click="applyTip(tip)">Aplica el consell</button>
-            <button class="tip-btn tip-btn--ghost" @click="ignoreTip(tip)">Ara no</button>
+            <button class="btn btn--primary" @click="applyTip(tip)">Aplica el bloc IA</button>
+            <button class="btn btn--ghost" @click="ignoreTip(tip)">Ara no</button>
           </div>
         </div>
       </div>
 
       <!-- History sidebar -->
-      <aside class="advice-history">
+      <aside id="advice-history" class="advice-history" tabindex="-1">
         <h3 class="history-title">Historial de consells</h3>
         <div class="history-list">
           <div v-for="h in history" :key="h.id" class="history-item">
@@ -53,6 +59,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import AppTopBar from '@/components/layout/AppTopBar.vue'
+import SectionNav from '@/components/ui/SectionNav.vue'
 import { useWeekStore } from '@/stores/weekStore'
 import { useUIStore } from '@/stores/uiStore'
 
@@ -166,7 +173,7 @@ function formatNow() {
 }
 .tip-card:hover { box-shadow: var(--shadow-md); }
 .tip-card--nutrition { border-left: 4px solid var(--accent); }
-.tip-card--recovery { border-left: 4px solid #6366F1; }
+.tip-card--recovery { border-left: 4px solid var(--purple); }
 .tip-card--performance { border-left: 4px solid var(--warning); }
 
 .tip-card__header { display: flex; align-items: center; gap: 10px; }
@@ -177,10 +184,10 @@ function formatNow() {
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
 }
-.tip-card--recovery .tip-icon { background: rgba(99,102,241,0.1); }
+.tip-card--recovery .tip-icon { background: var(--purple-light); }
 .tip-card--performance .tip-icon { background: var(--warning-light); }
 .tip-icon .material-symbols-rounded { font-size: 20px; color: var(--accent); }
-.tip-card--recovery .tip-icon .material-symbols-rounded { color: #6366F1; }
+.tip-card--recovery .tip-icon .material-symbols-rounded { color: var(--purple); }
 .tip-card--performance .tip-icon .material-symbols-rounded { color: var(--warning); }
 
 .tip-meta { flex: 1; }
@@ -200,11 +207,6 @@ function formatNow() {
 .tip-body { font-size: 13px; color: var(--text-2); line-height: 1.65; }
 
 .tip-actions { display: flex; gap: 8px; }
-.tip-btn { padding: 9px 16px; border-radius: var(--radius-md); font-size: 13px; font-weight: 500; cursor: pointer; transition: all var(--dur-fast); border: none; }
-.tip-btn--primary { background: var(--accent); color: var(--navy); }
-.tip-btn--primary:hover { background: var(--accent-dark); }
-.tip-btn--ghost { background: transparent; color: var(--text-2); border: 1px solid var(--border); }
-.tip-btn--ghost:hover { background: var(--surface-2); }
 
 /* History */
 .advice-history {

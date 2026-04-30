@@ -7,9 +7,17 @@
       @save="uiStore.showToast('Sessions desades.', 'success')"
     />
 
+    <SectionNav
+      :items="[
+        { label: 'Les meves rutines', target: 'sessions-list', icon: 'routine' },
+        { label: 'Historial de sessions', target: 'sessions-summary', icon: 'history' },
+        { label: 'Biblioteca', target: 'sessions-library', icon: 'library_books' }
+      ]"
+    />
+
     <div class="sessions-content">
       <!-- Left: week overview by day -->
-      <div class="sessions-left">
+      <div id="sessions-list" class="sessions-left" tabindex="-1">
         <div class="section-header">
           <h2 class="section-title">Aquesta setmana</h2>
           <span class="section-count">{{ weekStore.sessions.length }} sessions</span>
@@ -75,7 +83,7 @@
       </div>
 
       <!-- Right: stats panel -->
-      <aside class="sessions-right">
+      <aside id="sessions-summary" class="sessions-right" tabindex="-1">
         <div class="stats-card">
           <h3 class="stats-card__title">Resum setmanal</h3>
           <div class="stats-grid">
@@ -125,7 +133,9 @@
           </div>
         </div>
 
-        <SessionLibrary />
+        <div id="sessions-library">
+          <SessionLibrary />
+        </div>
       </aside>
     </div>
 
@@ -137,6 +147,7 @@
 <script setup>
 import { computed } from 'vue'
 import AppTopBar from '@/components/layout/AppTopBar.vue'
+import SectionNav from '@/components/ui/SectionNav.vue'
 import SessionEditPanel from '@/components/session/SessionEditPanel.vue'
 import SessionLibrary from '@/components/session/SessionLibrary.vue'
 import LoadBadge from '@/components/ui/LoadBadge.vue'
@@ -159,7 +170,7 @@ function getDayNum(dayIdx) {
   return start.getDate()
 }
 
-function getColor(type) { return weekStore.sessionTypes[type]?.color ?? '#6366F1' }
+function getColor(type) { return weekStore.sessionTypes[type]?.color ?? 'var(--purple)' }
 function getIcon(type) { return weekStore.sessionTypes[type]?.icon ?? 'fitness_center' }
 
 function formatDuration(mins) {
@@ -281,7 +292,7 @@ const typeDistribution = computed(() => {
 }
 .session-row__icon {
   width: 34px; height: 34px;
-  border-radius: 10px;
+  border-radius: var(--radius-sm-plus);
   background: color-mix(in srgb, var(--row-color) 12%, transparent);
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
@@ -295,14 +306,14 @@ const typeDistribution = computed(() => {
 
 .session-row__del {
   width: 30px; height: 30px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   display: flex; align-items: center; justify-content: center;
   color: var(--text-3);
   opacity: 0;
   transition: all var(--dur-fast);
 }
 .session-row:hover .session-row__del { opacity: 1; }
-.session-row__del:hover { background: #FEF2F2; color: var(--danger); }
+.session-row__del:hover { background: var(--danger-soft-bg); color: var(--danger); }
 .session-row__del .material-symbols-rounded { font-size: 16px; }
 
 .day-empty {
@@ -349,7 +360,7 @@ const typeDistribution = computed(() => {
 }
 .type-dist__icon {
   width: 28px; height: 28px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--td-color) 15%, transparent);
   display: flex; align-items: center; justify-content: center;
 }

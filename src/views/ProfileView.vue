@@ -1,6 +1,13 @@
 <template>
   <div class="profile-view">
     <AppTopBar title="Jo" subtitle="Les meves dades i preferències" />
+    <SectionNav
+      :items="[
+        { label: 'Dades personals', target: 'profile-data', icon: 'badge' },
+        { label: 'Preferències i objectius', target: 'profile-settings', icon: 'tune' },
+        { label: 'Objectiu personal', target: 'profile-goal', icon: 'target' }
+      ]"
+    />
 
     <div class="profile-content">
       <!-- Profile hero -->
@@ -18,7 +25,7 @@
 
       <div class="profile-grid">
         <!-- Personal data -->
-        <div class="profile-section">
+        <div id="profile-data" class="profile-section" tabindex="-1">
           <h3 class="profile-section__title">Dades personals</h3>
           <div class="data-list">
             <div v-for="d in personalData" :key="d.label" class="data-row">
@@ -29,7 +36,7 @@
         </div>
 
         <!-- Goals -->
-        <div class="profile-section">
+        <div id="profile-goal" class="profile-section" tabindex="-1">
           <h3 class="profile-section__title">Objectius</h3>
           <div class="goals-list">
             <div v-for="g in goals" :key="g.label" class="goal-item">
@@ -37,10 +44,21 @@
               {{ g.label }}
             </div>
           </div>
+
+          <div class="goal-field">
+            <label class="goal-field__label" for="personal-goal">Objectiu personal</label>
+            <textarea
+              id="personal-goal"
+              v-model="personalGoal"
+              class="goal-field__input"
+              placeholder="Vull..."
+              rows="3"
+            ></textarea>
+          </div>
         </div>
 
         <!-- Preferences -->
-        <div class="profile-section">
+        <div id="profile-settings" class="profile-section" tabindex="-1">
           <h3 class="profile-section__title">Preferències IA</h3>
           <div class="toggle-list">
             <div v-for="pref in prefs" :key="pref.key" class="toggle-row">
@@ -66,8 +84,9 @@
 </template>
 
 <script setup>
-import { reactive } from 'vue'
+import { reactive, ref } from 'vue'
 import AppTopBar from '@/components/layout/AppTopBar.vue'
+import SectionNav from '@/components/ui/SectionNav.vue'
 
 const personalData = [
   { label: 'Edat', value: '35 anys' },
@@ -84,6 +103,8 @@ const goals = [
   { label: 'Nutrició sense càrrega cognitiva' },
   { label: 'Planificació setmanal en < 5 minuts' }
 ]
+
+const personalGoal = ref('Vull mantenir el rendiment i recuperar millor.')
 
 const prefs = reactive([
   { key: 'proactive', label: 'Notificacions proactives', desc: 'L\'assistent IA et notifica quan detecta riscos nutricionals.', value: true },
@@ -176,4 +197,42 @@ const prefs = reactive([
   box-shadow: 0 1px 4px rgba(0,0,0,0.2);
 }
 .toggle-btn--on .toggle-btn__dot { transform: translateX(18px); }
+
+.goal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 16px;
+}
+
+.goal-field__label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.goal-field__input {
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  color: var(--text);
+  padding: 10px 12px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  resize: vertical;
+  min-height: 84px;
+  outline: none;
+  transition: border-color var(--dur-fast), box-shadow var(--dur-fast);
+}
+
+.goal-field__input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(0, 200, 150, 0.14);
+}
+
+.goal-field__input::placeholder {
+  color: var(--text-3);
+}
 </style>

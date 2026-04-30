@@ -88,7 +88,7 @@ defineEmits(['prevWeek', 'nextWeek', 'save', 'notifications'])
 .week-nav__btn {
   width: 32px;
   height: 32px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;

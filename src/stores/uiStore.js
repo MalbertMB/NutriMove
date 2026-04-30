@@ -63,11 +63,23 @@ export const useUIStore = defineStore('ui', () => {
   // Library panel (drag source - Task 2)
   const libraryOpen = ref(true)
 
+  // Keyboard fallback for session placement
+  const keyboardPlacementSessionType = ref(null)
+
+  function startKeyboardSessionPlacement(type) {
+    keyboardPlacementSessionType.value = type
+  }
+
+  function cancelKeyboardSessionPlacement() {
+    keyboardPlacementSessionType.value = null
+  }
+
   return {
     toasts, showToast, removeToast,
     editPanelOpen, editingSessionId, openEditPanel, closeEditPanel,
     aiPopoverOpen, aiPopoverContext, showAIPopover, closeAIPopover,
     aiDrawerOpen, aiDrawerContext, showAIDrawer, closeAIDrawer,
-    libraryOpen
+    libraryOpen,
+    keyboardPlacementSessionType, startKeyboardSessionPlacement, cancelKeyboardSessionPlacement
   }
 })

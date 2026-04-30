@@ -3,10 +3,12 @@
     <transition name="slide-bottom">
       <div
         v-if="uiStore.aiDrawerOpen && uiStore.aiDrawerContext"
+        ref="dialogRef"
         class="ai-drawer-wrap"
         role="dialog"
         aria-modal="true"
         aria-label="Recomanació NutriMove – Planificació setmanal"
+        @keydown.esc.prevent="uiStore.closeAIDrawer()"
       >
         <div class="ai-drawer" @click.stop>
           <!-- Handle -->
@@ -25,7 +27,7 @@
                 <p class="drawer__subtitle">Planificació setmanal – {{ ctx.day }}</p>
               </div>
             </div>
-            <button class="close-btn" @click="uiStore.closeAIDrawer()" aria-label="Tancar">
+            <button ref="closeBtnRef" class="close-btn" @click="uiStore.closeAIDrawer()" aria-label="Tancar">
               <span class="material-symbols-rounded">close</span>
             </button>
           </div>
@@ -110,7 +112,7 @@
             </button>
             <button class="btn btn--primary" @click="applyAll">
               <span class="material-symbols-rounded icon-fill">auto_awesome</span>
-              Aplica tots els ajustos
+              Aplica el bloc IA
             </button>
           </div>
         </div>
@@ -122,14 +124,30 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import { useUIStore } from '@/stores/uiStore'
 import { useWeekStore } from '@/stores/weekStore'
 
 const uiStore = useUIStore()
 const weekStore = useWeekStore()
+const dialogRef = ref(null)
+const closeBtnRef = ref(null)
+let lastFocusedElement = null
 
 const ctx = computed(() => uiStore.aiDrawerContext || {})
+
+watch(() => uiStore.aiDrawerOpen, async (open) => {
+  if (open) {
+    lastFocusedElement = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    await nextTick()
+    closeBtnRef.value?.focus()
+    return
+  }
+
+  await nextTick()
+  lastFocusedElement?.focus?.()
+  lastFocusedElement = null
+})
 
 function applyPartial() {
   const c = uiStore.aiDrawerContext
@@ -215,7 +233,7 @@ function applyAll() {
 .drawer__subtitle { font-size: 12px; color: var(--text-3); margin-top: 2px; }
 .close-btn {
   width: 36px; height: 36px;
-  border-radius: 10px;
+  border-radius: var(--radius-sm-plus);
   display: flex; align-items: center; justify-content: center;
   color: var(--text-3); flex-shrink: 0;
   transition: all var(--dur-fast);
@@ -285,7 +303,7 @@ function applyAll() {
   color: var(--accent-dark);
   background: var(--accent-light);
   padding: 3px 8px;
-  border-radius: 6px;
+  border-radius: var(--radius-xs);
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -324,9 +342,9 @@ function applyAll() {
   cursor: pointer; transition: all var(--dur-fast);
 }
 .btn--primary { background: var(--accent); color: var(--navy); }
-.btn--primary:hover { background: var(--accent-dark); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,200,150,0.3); }
+.btn--primary:hover { background: var(--accent-dark); transform: translateY(-1px); box-shadow: var(--shadow-accent); }
 .btn--secondary { background: var(--accent-light); color: var(--accent-dark); border: 1px solid rgba(0,200,150,0.25); }
-.btn--secondary:hover { background: rgba(0,200,150,0.2); }
+.btn--secondary:hover { background: color-mix(in srgb, var(--accent) 20%, transparent); }
 .btn--ghost { background: transparent; color: var(--text-2); border: 1px solid var(--border); }
 .btn--ghost:hover { background: var(--surface-2); }
 .btn .material-symbols-rounded { font-size: 16px; }

@@ -1,7 +1,8 @@
 <template>
   <div class="app-shell">
+    <a class="skip-link" href="#main-content">Saltar al contingut principal</a>
     <AppSidebar v-if="$route.name !== 'login'" />
-    <div class="app-main">
+    <div id="main-content" class="app-main" tabindex="-1">
       <router-view v-slot="{ Component }">
         <transition name="page-fade" mode="out-in">
           <component :is="Component" :key="$route.path" />
@@ -35,7 +36,7 @@ import BaseToast from '@/components/ui/BaseToast.vue'
   animation: fadeInUp 0.3s var(--ease) both;
 }
 .page-fade-leave-active {
-  transition: opacity 0.15s ease;
+  transition: opacity var(--dur-fast) var(--ease);
 }
 .page-fade-leave-to {
   opacity: 0;

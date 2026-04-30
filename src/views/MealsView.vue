@@ -2,8 +2,15 @@
   <div class="meals-view">
     <AppTopBar title="Àpats" subtitle="Planificació nutricional setmanal" />
 
+    <SectionNav
+      :items="[
+        { label: 'Pla setmanal', target: 'meal-plan', icon: 'calendar_month' },
+        { label: 'Log d\'àpats', target: 'meal-log', icon: 'receipt_long' }
+      ]"
+    />
+
     <div class="meals-content">
-      <div class="meals-grid">
+      <div id="meal-plan" class="meals-grid" tabindex="-1">
         <div
           v-for="(meal, i) in weekStore.meals"
           :key="i"
@@ -51,12 +58,32 @@
           </div>
         </div>
       </div>
+
+      <section id="meal-log" class="meal-log" tabindex="-1">
+        <div class="meal-log__header">
+          <h3 class="meal-log__title">Log d'àpats</h3>
+          <p class="meal-log__subtitle">Estat ràpid de cobertura i ajustos d'aquesta setmana.</p>
+        </div>
+        <div class="meal-log__list">
+          <div v-for="(meal, i) in weekStore.meals" :key="i" class="meal-log__row">
+            <div>
+              <span class="meal-log__day">{{ weekStore.daysFull[i] }}</span>
+              <span class="meal-log__meta">{{ meal.total }} / {{ meal.targetKcal }} kcal</span>
+            </div>
+            <div class="meal-log__status" :class="`meal-log__status--${meal.status}`">
+              {{ meal.status === 'ok' ? 'Cobert' : 'Revisar' }}
+            </div>
+            <span v-if="meal.aiAdjusted" class="meal-log__ai">IA aplicada</span>
+          </div>
+        </div>
+      </section>
     </div>
   </div>
 </template>
 
 <script setup>
 import AppTopBar from '@/components/layout/AppTopBar.vue'
+import SectionNav from '@/components/ui/SectionNav.vue'
 import MacroBar from '@/components/ui/MacroBar.vue'
 import { useWeekStore } from '@/stores/weekStore'
 
@@ -70,6 +97,45 @@ function slotIcon(slot) {
 <style scoped>
 .meals-view { display: flex; flex-direction: column; }
 .meals-content { padding: 24px; }
+.meal-log {
+  margin-top: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+}
+
+.meal-log__header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 14px;
+}
+
+.meal-log__title { font-family: var(--font-display); font-size: 15px; font-weight: 700; }
+.meal-log__subtitle { font-size: 12px; color: var(--text-3); }
+.meal-log__list { display: flex; flex-direction: column; gap: 10px; }
+.meal-log__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+}
+.meal-log__day { display: block; font-size: 13px; font-weight: 600; color: var(--text); }
+.meal-log__meta { font-size: 11px; color: var(--text-3); }
+.meal-log__status {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 99px;
+}
+.meal-log__status--ok { background: var(--accent-light); color: var(--accent-dark); }
+.meal-log__status--warning { background: var(--warning-light); color: var(--warning); }
+.meal-log__ai { font-size: 11px; font-weight: 600; color: var(--accent-dark); }
 .meals-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -89,7 +155,7 @@ function slotIcon(slot) {
   animation: fadeInUp 0.4s var(--ease) both;
 }
 .meal-card:hover { box-shadow: var(--shadow-md); }
-.meal-card--warning { border-color: #FCD34D; background: #FFFDF5; }
+.meal-card--warning { border-color: var(--warning-soft-border); background: var(--warning-surface-body); }
 
 .meal-card__header { display: flex; flex-direction: column; gap: 8px; }
 .meal-card__day-info { display: flex; align-items: center; justify-content: space-between; }

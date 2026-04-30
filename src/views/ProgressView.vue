@@ -1,10 +1,17 @@
 <template>
   <div class="progress-view">
     <AppTopBar title="Progrés" subtitle="Evolució setmanal del rendiment i la nutrició" />
+    <SectionNav
+      :items="[
+        { label: 'Gràfics de rendiment', target: 'progress-charts', icon: 'bar_chart' },
+        { label: 'Historial de sessions', target: 'progress-history', icon: 'history' },
+        { label: 'Adherència nutricional', target: 'progress-compliance', icon: 'verified' }
+      ]"
+    />
 
     <div class="progress-content">
       <!-- Chart placeholders (functional bars) -->
-      <div class="chart-row">
+      <div id="progress-charts" class="chart-row" tabindex="-1">
         <div class="chart-card">
           <h3 class="chart-title">Kcal cremades / setmana</h3>
           <div class="bar-chart">
@@ -41,7 +48,7 @@
       </div>
 
       <!-- PRs and milestones -->
-      <div class="milestones">
+      <div id="progress-history" class="milestones" tabindex="-1">
         <h3 class="milestones__title">Fites recents</h3>
         <div class="milestones__list">
           <div v-for="m in milestones" :key="m.id" class="milestone-item animate-fadeInUp">
@@ -58,7 +65,7 @@
       </div>
 
       <!-- Nutrition compliance -->
-      <div class="compliance-card">
+      <div id="progress-compliance" class="compliance-card" tabindex="-1">
         <h3 class="compliance-title">Adherència nutricional</h3>
         <div class="compliance-weeks">
           <div v-for="(w, i) in complianceWeeks" :key="i" class="compliance-week">
@@ -79,6 +86,7 @@
 
 <script setup>
 import AppTopBar from '@/components/layout/AppTopBar.vue'
+import SectionNav from '@/components/ui/SectionNav.vue'
 
 const kcalHistory = [
   { label: 'S-5', kcal: 2200 }, { label: 'S-4', kcal: 2800 }, { label: 'S-3', kcal: 2400 },
@@ -120,13 +128,13 @@ const complianceWeeks = [
 .bar-col__bar {
   width: 100%;
   background: var(--surface-3);
-  border-radius: 6px 6px 0 0;
+  border-radius: var(--radius-xs) var(--radius-xs) 0 0;
   transition: height 1s var(--ease);
   min-height: 4px;
 }
 .bar-col__bar--current { background: var(--accent); }
-.bar-col__bar--purple { background: rgba(99,102,241,0.25); }
-.bar-col__bar--purple.bar-col__bar--current { background: #6366F1; }
+.bar-col__bar--purple { background: var(--purple-light-strong); }
+.bar-col__bar--purple.bar-col__bar--current { background: var(--purple); }
 .bar-col__label { font-size: 10px; color: var(--text-3); font-weight: 500; }
 
 /* Milestones */
@@ -153,7 +161,7 @@ const complianceWeeks = [
 .milestone-icon {
   width: 40px; height: 40px;
   border-radius: var(--radius-md);
-  background: linear-gradient(135deg, var(--accent-light), rgba(99,102,241,0.1));
+  background: linear-gradient(135deg, var(--accent-light), var(--purple-light));
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
 }

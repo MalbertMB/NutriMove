@@ -69,7 +69,7 @@ const authStore = useAuthStore()
 const uiStore = useUIStore()
 
 const navItems = [
-  { to: '/dashboard', label: 'Dashboard', icon: 'home' },
+  { to: '/dashboard', label: 'Inici', icon: 'home' },
   { to: '/sessions', label: 'Sessions', icon: 'fitness_center' },
   { to: '/apats', label: 'Àpats', icon: 'restaurant' },
   { to: '/consells', label: 'Consells', icon: 'tips_and_updates' },
@@ -114,7 +114,7 @@ function handleLogout() {
   width: 36px;
   height: 36px;
   background: var(--accent);
-  border-radius: 10px;
+  border-radius: var(--radius-sm-plus);
   display: flex;
   align-items: center;
   justify-content: center;

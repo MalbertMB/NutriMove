@@ -2,7 +2,7 @@
   <div class="dashboard">
     <!-- Topbar -->
     <AppTopBar
-      title="Dashboard"
+      title="Inici"
       :subtitle="weekLabel"
       :show-week-nav="true"
       :show-save="true"
@@ -10,6 +10,14 @@
       @prev-week="weekOffset--"
       @next-week="weekOffset++"
       @save="handleSave"
+    />
+
+    <SectionNav
+      :items="[
+        { label: 'Setmana', target: 'dashboard-calendar', icon: 'calendar_month' },
+        { label: 'Avui', target: 'dashboard-today', icon: 'today' },
+        { label: 'Biblioteca', target: 'dashboard-library', icon: 'library_books' }
+      ]"
     />
 
     <!-- KPI strip -->
@@ -54,7 +62,7 @@
     <!-- Main content: Calendar + library sidebar -->
     <div class="dashboard__main">
       <!-- Library sidebar -->
-      <aside class="dashboard__library">
+      <aside id="dashboard-library" class="dashboard__library" tabindex="-1">
         <SessionLibrary @add-session="handleAddFromLibrary" />
 
         <!-- High-load alert banner -->
@@ -76,7 +84,7 @@
         </transition>
 
         <!-- Quick add form -->
-        <div class="quick-add">
+        <div id="dashboard-today" class="quick-add">
           <div class="quick-add__header">
             <span class="material-symbols-rounded">add_circle</span>
             Afegir sessió ràpida
@@ -109,7 +117,7 @@
       </aside>
 
       <!-- Calendar -->
-      <div class="dashboard__cal">
+      <div id="dashboard-calendar" class="dashboard__cal" tabindex="-1">
         <WeekCalendar
           :week-offset="weekOffset"
           @drop-session="handleDropSession"
@@ -145,6 +153,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import AppTopBar from '@/components/layout/AppTopBar.vue'
+import SectionNav from '@/components/ui/SectionNav.vue'
 import WeekCalendar from '@/components/dashboard/WeekCalendar.vue'
 import SessionLibrary from '@/components/session/SessionLibrary.vue'
 import StatCard from '@/components/dashboard/StatCard.vue'
@@ -258,8 +267,8 @@ function handleSave() {
 
 /* Alert banner */
 .alert-banner {
-  background: linear-gradient(135deg, #FFF7ED 0%, #FEF3C7 100%);
-  border: 1px solid #FCD34D;
+  background: linear-gradient(135deg, var(--warning-surface-start) 0%, var(--warning-surface-end) 100%);
+  border: 1px solid var(--warning-soft-border);
   border-radius: var(--radius-xl);
   padding: 16px;
   display: flex;
@@ -274,10 +283,10 @@ function handleSave() {
   font-family: var(--font-display);
   font-size: 13px;
   font-weight: 700;
-  color: #92400E;
+  color: var(--warning-soft-text);
 }
 .alert-banner__header .material-symbols-rounded { font-size: 16px; color: var(--warning); }
-.alert-banner__text { font-size: 12px; color: #78350F; line-height: 1.5; }
+.alert-banner__text { font-size: 12px; color: var(--warning-surface-text); line-height: 1.5; }
 .alert-banner__cta {
   display: flex;
   align-items: center;

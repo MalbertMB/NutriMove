@@ -28,9 +28,15 @@
           :key="'s-' + i"
           class="cal-cell"
           :class="{ 'cal-cell--drop-target': dragOverDay === i }"
+          :aria-dropeffect="uiStore.keyboardPlacementSessionType ? 'move' : 'none'"
+          :aria-label="calendarCellLabel(i)"
+          role="button"
+          tabindex="0"
           @dragover.prevent="dragOverDay = i"
           @dragleave="dragOverDay = null"
           @drop="handleDrop(i, $event)"
+          @keydown.enter.prevent="handleKeyboardDrop(i)"
+          @keydown.space.prevent="handleKeyboardDrop(i)"
         >
           <!-- Session blocks -->
           <div
@@ -150,7 +156,7 @@ function formatDuration(mins) {
 }
 
 function getSessionColor(type) {
-  return weekStore.sessionTypes[type]?.color ?? '#6366F1'
+  return weekStore.sessionTypes[type]?.color ?? 'var(--purple)'
 }
 
 function getSessionIcon(type) {
@@ -165,9 +171,22 @@ function handleDrop(dayIndex, event) {
   }
 }
 
+function handleKeyboardDrop(dayIndex) {
+  const type = uiStore.keyboardPlacementSessionType
+  if (!type) return
+  emit('dropSession', { dayIndex, type })
+  uiStore.cancelKeyboardSessionPlacement()
+}
+
+function calendarCellLabel(dayIndex) {
+  const label = weekStore.daysFull[dayIndex]
+  const selectedType = uiStore.keyboardPlacementSessionType ? ` Sessió seleccionada: ${weekStore.sessionTypes[uiStore.keyboardPlacementSessionType].label}.` : ''
+  return `${label}. Prem Enter per afegir una sessió.${selectedType}`
+}
+
 function miniMacros(meal) {
   return [
-    { key: 'c', label: 'Hidrats', val: meal.lunch?.carbs ?? 0, pct: Math.min(100, ((meal.lunch?.carbs ?? 0) / 250) * 100), color: '#6366F1' },
+    { key: 'c', label: 'Hidrats', val: meal.lunch?.carbs ?? 0, pct: Math.min(100, ((meal.lunch?.carbs ?? 0) / 250) * 100), color: 'var(--purple)' },
     { key: 'p', label: 'Proteïna', val: meal.lunch?.protein ?? 0, pct: Math.min(100, ((meal.lunch?.protein ?? 0) / 120) * 100), color: '#00C896' },
     { key: 'f', label: 'Greixos', val: meal.dinner?.fat ?? 0, pct: Math.min(100, ((meal.dinner?.fat ?? 0) / 60) * 100), color: '#F59E0B' },
   ]

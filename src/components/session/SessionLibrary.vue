@@ -8,18 +8,27 @@
     </div>
 
     <div class="library__body">
+      <p class="library__hint">
+        Pots arrossegar una sessió o seleccionar-la amb teclat i després col·locar-la en un dia del calendari.
+      </p>
       <div class="library__list">
         <div
           v-for="(typeData, key) in sessionTypes"
           :key="key"
           class="lib-card"
+          :class="{ 'lib-card--selected': isSelected(key) }"
           :style="{ '--card-color': typeData.color }"
           draggable="true"
           @dragstart="handleDragStart(key, $event)"
           @dragend="handleDragEnd"
+          @click="handleKeyboardSelect(key)"
+          @keydown.enter.prevent="handleKeyboardSelect(key)"
+          @keydown.space.prevent="handleKeyboardSelect(key)"
           :aria-label="`${typeData.label} – Arrossega per afegir al calendari`"
           role="button"
           tabindex="0"
+          :aria-pressed="isSelected(key)"
+          :aria-grabbed="isSelected(key)"
         >
           <div class="lib-card__bar" aria-hidden="true"></div>
           
@@ -34,6 +43,12 @@
         </div>
       </div>
 
+      <div v-if="uiStore.keyboardPlacementSessionType" class="library__keyboard-state">
+        <span class="library__keyboard-state-label">Sessió seleccionada</span>
+        <strong>{{ sessionTypes[uiStore.keyboardPlacementSessionType].label }}</strong>
+        <button class="library__clear" @click="uiStore.cancelKeyboardSessionPlacement()">Cancel·la</button>
+      </div>
+
       <button class="library__btn-new" @click="handleNewSession">
         <span class="material-symbols-rounded">add</span>
         Nova sessió personalitzada
@@ -43,9 +58,11 @@
 </template>
 
 <script setup>
+import { useUIStore } from '@/stores/uiStore'
 import { useWeekStore } from '@/stores/weekStore'
 
 const weekStore = useWeekStore()
+const uiStore = useUIStore()
 const sessionTypes = weekStore.sessionTypes
 const emit = defineEmits(['add-session', 'add-custom-session'])
 
@@ -55,6 +72,21 @@ function handleDragStart(type, event) {
 }
 
 function handleDragEnd() {}
+
+function handleKeyboardSelect(type) {
+  if (uiStore.keyboardPlacementSessionType === type) {
+    uiStore.cancelKeyboardSessionPlacement()
+    uiStore.showToast('Selecció de sessió cancel·lada.', 'info')
+    return
+  }
+
+  uiStore.startKeyboardSessionPlacement(type)
+  uiStore.showToast(`Seleccionada ${sessionTypes[type].label}. Tria un dia del calendari i prem Enter.`, 'info')
+}
+
+function isSelected(type) {
+  return uiStore.keyboardPlacementSessionType === type
+}
 
 function handleNewSession() {
   emit('add-custom-session')
@@ -105,6 +137,12 @@ function handleNewSession() {
   overflow-y: auto;
 }
 
+.library__hint {
+  font-size: 12px;
+  color: var(--text-3);
+  line-height: 1.5;
+}
+
 .library__list {
   display: flex;
   flex-direction: column;
@@ -136,6 +174,12 @@ function handleNewSession() {
   border-color: var(--card-color);
   box-shadow: 0 4px 12px color-mix(in srgb, var(--card-color) 20%, transparent);
   transform: translateY(-2px);
+}
+
+.lib-card--selected {
+  border-color: var(--accent);
+  background: var(--accent-light);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 .lib-card:focus-visible {
@@ -213,7 +257,7 @@ function handleNewSession() {
 .library__btn-new:hover {
   filter: brightness(0.95);
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px color-mix(in srgb, var(--accent) 30%, transparent);
+  box-shadow: var(--shadow-accent);
 }
 
 .library__btn-new:active {
@@ -228,5 +272,30 @@ function handleNewSession() {
 
 .library__btn-new .material-symbols-rounded {
   font-size: 18px;
+}
+
+.library__keyboard-state {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.library__keyboard-state-label {
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 700;
+  color: var(--text-3);
+}
+
+.library__clear {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent-dark);
 }
 </style>

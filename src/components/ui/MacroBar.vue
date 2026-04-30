@@ -37,7 +37,7 @@ const macros = computed(() => [
   {
     key: 'carbs', label: 'Hidrats', value: props.carbs,
     pct: Math.min(100, Math.round((props.carbs / props.carbsTarget) * 100)),
-    color: '#6366F1'
+    color: 'var(--purple)'
   },
   {
     key: 'protein', label: 'Proteïna', value: props.protein,

@@ -1,6 +1,14 @@
 <template>
   <transition name="slide-right">
-    <div v-if="uiStore.editPanelOpen && session" class="edit-panel" role="dialog" aria-modal="true" :aria-label="`Editar sessió: ${session.label}`">
+    <div
+      v-if="uiStore.editPanelOpen && session"
+      ref="panelRef"
+      class="edit-panel"
+      role="dialog"
+      aria-modal="true"
+      :aria-label="`Editar sessió: ${session.label}`"
+      @keydown.esc.prevent="uiStore.closeEditPanel()"
+    >
       <div class="edit-panel__header">
         <div class="edit-panel__title-row">
           <div class="edit-panel__icon" :style="{ background: typeData.color + '20', color: typeData.color }">
@@ -11,7 +19,7 @@
             <span class="edit-panel__day">{{ dayName }}</span>
           </div>
         </div>
-        <button class="close-btn" @click="uiStore.closeEditPanel()" aria-label="Tancar">
+        <button ref="closeBtnRef" class="close-btn" @click="uiStore.closeEditPanel()" aria-label="Tancar">
           <span class="material-symbols-rounded">close</span>
         </button>
       </div>
@@ -19,8 +27,8 @@
       <div class="edit-panel__body">
         <!-- Duration field -->
         <div class="field">
-          <label class="field__label" for="duration">Durada</label>
-          <div class="duration-picker">
+          <label id="duration-label" class="field__label">Durada</label>
+          <div class="duration-picker" role="group" aria-labelledby="duration-label" aria-describedby="duration-hint">
             <button
               v-for="opt in durationOptions"
               :key="opt.value"
@@ -32,13 +40,13 @@
               {{ opt.label }}
             </button>
           </div>
-          <p class="field__hint">Durada actual: <strong>{{ formatDuration(localDuration) }}</strong></p>
+          <p id="duration-hint" class="field__hint">Durada actual: <strong>{{ formatDuration(localDuration) }}</strong></p>
         </div>
 
         <!-- Intensity field -->
         <div class="field">
-          <label class="field__label">Intensitat</label>
-          <div class="intensity-picker">
+          <label id="intensity-label" class="field__label">Intensitat</label>
+          <div class="intensity-picker" role="group" aria-labelledby="intensity-label" aria-describedby="intensity-hint">
             <button
               v-for="lvl in intensityOptions"
               :key="lvl.value"
@@ -51,6 +59,7 @@
               {{ lvl.value }}
             </button>
           </div>
+          <p id="intensity-hint" class="field__hint">Selecciona la percepció de càrrega de la sessió.</p>
         </div>
 
         <!-- Notes -->
@@ -62,7 +71,9 @@
             class="field__textarea"
             placeholder="Descriu la sessió..."
             rows="3"
+            aria-describedby="notes-hint"
           ></textarea>
+          <p id="notes-hint" class="field__hint">Afegeix observacions sobre la sessió o la recuperació.</p>
         </div>
 
         <!-- Impact preview -->
@@ -84,6 +95,10 @@
 
       <div class="edit-panel__footer">
         <button class="btn btn--ghost" @click="uiStore.closeEditPanel()">Ara no</button>
+        <button class="btn btn--danger" @click="deleteSession">
+          <span class="material-symbols-rounded">delete_outline</span>
+          Elimina la sessió
+        </button>
         <button class="btn btn--primary" @click="applyChanges" :disabled="!hasChanges">
           <span class="material-symbols-rounded">check</span>
           Aplica el canvi
@@ -99,12 +114,15 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { useWeekStore } from '@/stores/weekStore'
 import { useUIStore } from '@/stores/uiStore'
 
 const weekStore = useWeekStore()
 const uiStore = useUIStore()
+const panelRef = ref(null)
+const closeBtnRef = ref(null)
+let lastFocusedElement = null
 
 const session = computed(() => {
   if (!uiStore.editingSessionId) return null
@@ -112,8 +130,8 @@ const session = computed(() => {
 })
 
 const typeData = computed(() => {
-  if (!session.value) return { icon: 'fitness_center', color: '#6366F1', label: '' }
-  return weekStore.sessionTypes[session.value.type] ?? { icon: 'fitness_center', color: '#6366F1', label: '' }
+  if (!session.value) return { icon: 'fitness_center', color: 'var(--purple)', label: '' }
+  return weekStore.sessionTypes[session.value.type] ?? { icon: 'fitness_center', color: 'var(--purple)', label: '' }
 })
 
 const dayName = computed(() => session.value ? weekStore.daysFull[session.value.day] : '')
@@ -129,6 +147,19 @@ watch(session, (s) => {
     localNotes.value = s.notes || ''
   }
 }, { immediate: true })
+
+watch(() => uiStore.editPanelOpen, async (open) => {
+  if (open) {
+    lastFocusedElement = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    await nextTick()
+    closeBtnRef.value?.focus()
+    return
+  }
+
+  await nextTick()
+  lastFocusedElement?.focus?.()
+  lastFocusedElement = null
+})
 
 const hasChanges = computed(() => {
   if (!session.value) return false
@@ -165,7 +196,12 @@ function formatDuration(mins) {
 
 function applyChanges() {
   if (!session.value || !hasChanges.value) return
-  const prevIntensity = session.value.intensity
+  const sessionSnapshot = {
+    id: session.value.id,
+    day: session.value.day,
+    duration: localDuration.value,
+    intensity: localIntensity.value
+  }
   weekStore.updateSession(session.value.id, {
     duration: localDuration.value,
     intensity: localIntensity.value,
@@ -177,8 +213,8 @@ function applyChanges() {
   if (localIntensity.value === 'Alta' || localDuration.value >= 240) {
     setTimeout(() => {
       uiStore.showAIPopover({
-        sessionId: session.value?.id,
-        day: session.value?.day,
+        sessionId: sessionSnapshot.id,
+        day: sessionSnapshot.day,
         duration: localDuration.value,
         intensity: localIntensity.value,
         message: `La sessió de ${formatDuration(localDuration.value)} d'intensitat ${localIntensity.value.toLowerCase()} requereix energia extra. Afegeix hidrats (ex: arròs o pasta) al teu sopar d'avui.`,
@@ -188,6 +224,14 @@ function applyChanges() {
   } else {
     uiStore.showToast('Fet! Sessió actualitzada correctament.', 'success')
   }
+}
+
+function deleteSession() {
+  if (!session.value) return
+  const label = session.value.label
+  weekStore.removeSession(session.value.id)
+  uiStore.closeEditPanel()
+  uiStore.showToast(`Sessió eliminada: ${label}.`, 'info')
 }
 </script>
 
@@ -228,7 +272,7 @@ function applyChanges() {
 
 .close-btn {
   width: 32px; height: 32px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   display: flex; align-items: center; justify-content: center;
   color: var(--text-3);
   flex-shrink: 0;
@@ -276,7 +320,7 @@ function applyChanges() {
 }
 .int-opt:hover { border-color: var(--border-2); }
 .int-opt .material-symbols-rounded { font-size: 22px; }
-.int-opt--low.active { background: #F0FDF4; border-color: #86EFAC; color: #16A34A; }
+.int-opt--low.active { background: var(--intensity-low-bg); border-color: var(--intensity-low-border); color: var(--intensity-low-text); }
 .int-opt--med.active { background: var(--accent-light); border-color: var(--accent); color: var(--accent-dark); }
 .int-opt--high.active { background: var(--warning-light); border-color: var(--warning); color: var(--warning); }
 
