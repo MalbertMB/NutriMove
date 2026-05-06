@@ -15,7 +15,7 @@ export const useAuthStore = defineStore("auth", () => {
 		const pwd = String(password || "");
 
 		if (normalized === "pau@nutrimove.app" && pwd === "123456") {
-			user.value = { name: "Pau Martinez", email: normalized };
+			user.value = { name: "Pau Martínez", email: normalized };
 			persistUser(user.value);
 			return { ok: true };
 		}

@@ -185,10 +185,14 @@ function calendarCellLabel(dayIndex) {
 }
 
 function miniMacros(meal) {
+  const slots = [meal.breakfast, meal.lunch, meal.snack, meal.dinner]
+  const totalCarbs = slots.reduce((s, m) => s + (m?.carbs ?? 0), 0)
+  const totalProtein = slots.reduce((s, m) => s + (m?.protein ?? 0), 0)
+  const totalFat = slots.reduce((s, m) => s + (m?.fat ?? 0), 0)
   return [
-    { key: 'c', label: 'Hidrats', val: meal.lunch?.carbs ?? 0, pct: Math.min(100, ((meal.lunch?.carbs ?? 0) / 250) * 100), color: 'var(--purple)' },
-    { key: 'p', label: 'Proteïna', val: meal.lunch?.protein ?? 0, pct: Math.min(100, ((meal.lunch?.protein ?? 0) / 120) * 100), color: '#00C896' },
-    { key: 'f', label: 'Greixos', val: meal.dinner?.fat ?? 0, pct: Math.min(100, ((meal.dinner?.fat ?? 0) / 60) * 100), color: '#F59E0B' },
+    { key: 'c', label: 'Hidrats', val: totalCarbs, pct: Math.min(100, (totalCarbs / 250) * 100), color: 'var(--purple)' },
+    { key: 'p', label: 'Proteïna', val: totalProtein, pct: Math.min(100, (totalProtein / 120) * 100), color: '#00C896' },
+    { key: 'f', label: 'Greixos', val: totalFat, pct: Math.min(100, (totalFat / 60) * 100), color: '#F59E0B' },
   ]
 }
 

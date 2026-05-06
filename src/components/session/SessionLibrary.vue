@@ -49,10 +49,6 @@
         <button class="library__clear" @click="uiStore.cancelKeyboardSessionPlacement()">Cancel·la</button>
       </div>
 
-      <button class="library__btn-new" @click="handleNewSession">
-        <span class="material-symbols-rounded">add</span>
-        Nova sessió personalitzada
-      </button>
     </div>
   </div>
 </template>
@@ -64,7 +60,7 @@ import { useWeekStore } from '@/stores/weekStore'
 const weekStore = useWeekStore()
 const uiStore = useUIStore()
 const sessionTypes = weekStore.sessionTypes
-const emit = defineEmits(['add-session', 'add-custom-session'])
+const emit = defineEmits(['add-session'])
 
 function handleDragStart(type, event) {
   event.dataTransfer.setData('session-type', type)
@@ -88,9 +84,6 @@ function isSelected(type) {
   return uiStore.keyboardPlacementSessionType === type
 }
 
-function handleNewSession() {
-  emit('add-custom-session')
-}
 </script>
 
 <style scoped>
@@ -234,44 +227,6 @@ function handleNewSession() {
   display: block;
   font-size: 11px;
   color: var(--text-3);
-}
-
-.library__btn-new {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  margin-top: auto;
-  padding: 14px 16px;
-  border-radius: var(--radius-lg);
-  background: var(--accent);
-  color: var(--navy);
-  border: none;
-  font-weight: 700;
-  font-size: 13px;
-  cursor: pointer;
-  transition: all var(--dur-fast);
-  outline: none;
-}
-
-.library__btn-new:hover {
-  filter: brightness(0.95);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-accent);
-}
-
-.library__btn-new:active {
-  transform: translateY(0);
-  filter: brightness(0.9);
-}
-
-.library__btn-new:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-.library__btn-new .material-symbols-rounded {
-  font-size: 18px;
 }
 
 .library__keyboard-state {

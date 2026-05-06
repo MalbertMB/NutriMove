@@ -154,7 +154,7 @@ p {
 .field input:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(0, 184, 230, 0.16);
+  box-shadow: 0 0 0 3px rgba(0, 200, 150, 0.16);
 }
 
 .btn-login {

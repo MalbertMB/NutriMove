@@ -79,9 +79,9 @@ const tips = computed(() => {
       id: `meal-${day}`,
       type: 'nutrition',
       icon: 'restaurant',
-      tag: 'Nutricio',
+      tag: 'Nutrició',
       title: `Ajust de carbohidrats per ${weekStore.daysFull[day]}`,
-      body: `Aquest dia te carrega alta. Aplica un increment nutricional automatic de 300 kcal al sopar per millorar la recuperacio.`,
+      body: `Aquest dia té càrrega alta. Aplica un increment nutricional automàtic de 300 kcal al sopar per millorar la recuperació.`,
       action: 'apply-day',
       day
     })
@@ -93,9 +93,9 @@ const tips = computed(() => {
       id: 'week-adjust',
       type: 'recovery',
       icon: 'auto_awesome',
-      tag: 'Planificacio',
+      tag: 'Planificació',
       title: 'Ajust nutricional per tota la setmana intensa',
-      body: 'S han detectat diversos dies exigents. Pots aplicar una adaptacio global de calories i carbohidrats als dies de carrega.',
+      body: "S'han detectat diversos dies exigents. Pots aplicar una adaptació global de calories i carbohidrats als dies de càrrega.",
       action: 'apply-week',
       startDay: Math.min(...days),
       endDay: Math.max(...days)
@@ -109,7 +109,7 @@ const tips = computed(() => {
       icon: 'check_circle',
       tag: 'Rendiment',
       title: 'Setmana estable i ben compensada',
-      body: 'No hi ha desajustos importants detectats. Mantingues la mateixa estrategia de descans i hidratacio.',
+      body: 'No hi ha desajustos importants detectats. Mantén la mateixa estratègia de descans i hidratació.',
       action: 'none'
     })
   }

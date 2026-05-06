@@ -94,11 +94,13 @@
       </div>
 
       <div class="edit-panel__footer">
-        <button class="btn btn--ghost" @click="uiStore.closeEditPanel()">Ara no</button>
-        <button class="btn btn--danger" @click="deleteSession">
-          <span class="material-symbols-rounded">delete_outline</span>
-          Elimina la sessió
-        </button>
+        <div class="footer-left">
+          <button class="btn btn--ghost" @click="uiStore.closeEditPanel()">Ara no</button>
+          <button class="btn btn--danger" @click="deleteSession">
+            <span class="material-symbols-rounded">delete_outline</span>
+            Elimina
+          </button>
+        </div>
         <button class="btn btn--primary" @click="applyChanges" :disabled="!hasChanges">
           <span class="material-symbols-rounded">check</span>
           Aplica el canvi
@@ -373,8 +375,13 @@ function deleteSession() {
   padding: 16px 24px;
   border-top: 1px solid var(--border);
   display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: 8px;
-  justify-content: flex-end;
+}
+.footer-left {
+  display: flex;
+  gap: 8px;
 }
 
 .btn {

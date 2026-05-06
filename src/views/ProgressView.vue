@@ -19,7 +19,7 @@
               <div class="bar-col__bar-wrap">
                 <div
                   class="bar-col__bar"
-                  :style="{ height: (week.kcal / 4000 * 100) + '%' }"
+                  :style="{ height: (week.kcal / 4000 * 100) + '%', animationDelay: i * 80 + 'ms' }"
                   :class="{ 'bar-col__bar--current': i === kcalHistory.length - 1 }"
                   :title="`${week.kcal} kcal`"
                 ></div>
@@ -36,7 +36,7 @@
               <div class="bar-col__bar-wrap">
                 <div
                   class="bar-col__bar bar-col__bar--purple"
-                  :style="{ height: (week.count / 7 * 100) + '%' }"
+                  :style="{ height: (week.count / 7 * 100) + '%', animationDelay: i * 80 + 'ms' }"
                   :class="{ 'bar-col__bar--current': i === sessionsHistory.length - 1 }"
                   :title="`${week.count} sessions`"
                 ></div>
@@ -129,8 +129,9 @@ const complianceWeeks = [
   width: 100%;
   background: var(--surface-3);
   border-radius: var(--radius-xs) var(--radius-xs) 0 0;
-  transition: height 1s var(--ease);
   min-height: 4px;
+  transform-origin: bottom;
+  animation: barGrow 1s var(--ease) both;
 }
 .bar-col__bar--current { background: var(--accent); }
 .bar-col__bar--purple { background: var(--purple-light-strong); }

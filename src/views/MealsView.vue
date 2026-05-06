@@ -34,9 +34,9 @@
 
           <!-- Macro bars -->
           <MacroBar
-            :carbs="(meal.breakfast?.carbs || 0) + (meal.lunch?.carbs || 0)"
-            :protein="(meal.breakfast?.protein || 0) + (meal.lunch?.protein || 0)"
-            :fat="(meal.breakfast?.fat || 0) + (meal.dinner?.fat || 0)"
+            :carbs="(meal.breakfast?.carbs || 0) + (meal.lunch?.carbs || 0) + (meal.snack?.carbs || 0) + (meal.dinner?.carbs || 0)"
+            :protein="(meal.breakfast?.protein || 0) + (meal.lunch?.protein || 0) + (meal.snack?.protein || 0) + (meal.dinner?.protein || 0)"
+            :fat="(meal.breakfast?.fat || 0) + (meal.lunch?.fat || 0) + (meal.snack?.fat || 0) + (meal.dinner?.fat || 0)"
           />
 
           <!-- Meal slots -->

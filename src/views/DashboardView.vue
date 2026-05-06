@@ -102,8 +102,8 @@
             </select>
           </div>
           <div class="field">
-            <label class="field__label" for="qa-dur">Intensitat</label>
-            <select id="qa-dur" v-model="qaIntensity" class="field__select">
+            <label class="field__label" for="qa-intensity">Intensitat</label>
+            <select id="qa-intensity" v-model="qaIntensity" class="field__select">
               <option value="Baixa">Baixa</option>
               <option value="Moderada">Moderada</option>
               <option value="Alta">Alta</option>

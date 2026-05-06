@@ -63,7 +63,7 @@ export const useWeekStore = defineStore('week', () => {
       intensity,
       label: typeData.label,
       kcal,
-      load: intensity === 'Alta' ? 'high' : 'normal'
+      load: intensity === 'Alta' || duration >= 240 ? 'high' : 'normal'
     }
     sessions.value.push(newSession)
     checkLoadAndUpdateMeals(dayIndex)
