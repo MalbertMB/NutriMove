@@ -123,27 +123,11 @@
           @drop-session="handleDropSession"
         />
 
-        <!-- Week summary footer -->
-        <div class="week-summary">
-          <div class="summary-item">
-            <span class="material-symbols-rounded icon-fill" style="color:var(--accent)">fitness_center</span>
-            <strong>{{ totals.totalSessions }}</strong> sessions
-          </div>
-          <div class="summary-sep" aria-hidden="true">·</div>
-          <div class="summary-item">
-            <span class="material-symbols-rounded icon-fill" style="color:#EF4444">local_fire_department</span>
-            <strong>{{ totals.totalKcalBurned }}</strong> kcal cremades
-          </div>
-          <div class="summary-sep" aria-hidden="true">·</div>
-          <div class="summary-item" :class="{ 'summary-item--warn': coveredDays < 7 }">
-            <span class="material-symbols-rounded icon-fill" :style="{ color: coveredDays === 7 ? 'var(--accent)' : 'var(--warning)' }">restaurant</span>
-            Nutrició coberta <strong>{{ coveredDays }} / 7</strong>
-          </div>
-        </div>
       </div>
     </div>
 
     <!-- Overlays -->
+    <SessionPreviewCard />
     <SessionEditPanel />
     <AIPopover />
     <AIDrawer />
@@ -157,6 +141,7 @@ import SectionNav from '@/components/ui/SectionNav.vue'
 import WeekCalendar from '@/components/dashboard/WeekCalendar.vue'
 import SessionLibrary from '@/components/session/SessionLibrary.vue'
 import StatCard from '@/components/dashboard/StatCard.vue'
+import SessionPreviewCard from '@/components/session/SessionPreviewCard.vue'
 import SessionEditPanel from '@/components/session/SessionEditPanel.vue'
 import AIPopover from '@/components/ai/AIPopover.vue'
 import AIDrawer from '@/components/ai/AIDrawer.vue'
@@ -238,14 +223,15 @@ function handleSave() {
 </script>
 
 <style scoped>
-.dashboard { display: flex; flex-direction: column; min-height: 100vh; }
+.dashboard { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
 
 /* KPI strip */
 .kpi-strip {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 16px;
-  padding: 24px 24px 0;
+  padding: 20px 24px 0;
+  flex-shrink: 0;
 }
 
 /* Main layout */
@@ -253,17 +239,25 @@ function handleSave() {
   display: grid;
   grid-template-columns: 260px 1fr;
   gap: 20px;
-  padding: 20px 24px 32px;
+  padding: 16px 24px 16px;
   flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .dashboard__library {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  overflow-y: auto;
 }
 
-.dashboard__cal { display: flex; flex-direction: column; gap: 12px; }
+.dashboard__cal {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
 
 /* Alert banner */
 .alert-banner {
@@ -355,27 +349,4 @@ function handleSave() {
 .btn--full { width: 100%; justify-content: center; }
 .btn .material-symbols-rounded { font-size: 16px; }
 
-/* Week summary */
-.week-summary {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 20px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-sm);
-  flex-wrap: wrap;
-}
-.summary-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  color: var(--text-2);
-}
-.summary-item .material-symbols-rounded { font-size: 16px; }
-.summary-item strong { color: var(--text); font-weight: 700; }
-.summary-item--warn { color: var(--warning); }
-.summary-sep { color: var(--border-2); font-size: 18px; }
 </style>

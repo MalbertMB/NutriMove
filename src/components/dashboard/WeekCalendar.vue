@@ -3,6 +3,7 @@
     <!-- Day headers -->
     <div class="cal-header">
       <div class="cal-header__gutter"></div>
+      <div class="cal-header__time-gap" aria-hidden="true"></div>
       <div
         v-for="(day, i) in weekStore.days"
         :key="day"
@@ -22,12 +23,25 @@
         <span class="material-symbols-rounded" aria-hidden="true">fitness_center</span>
         Sessions
       </div>
-      <div class="cal-track__cells">
+      <div class="sessions-content">
+        <!-- Time ruler -->
+        <div class="time-ruler" aria-hidden="true">
+          <div
+            v-for="h in timeHours"
+            :key="h"
+            class="time-ruler__label"
+            :style="{ top: hourToPercent(h) + '%' }"
+          >
+            {{ formatHour(h) }}
+          </div>
+        </div>
+
+        <!-- Day columns -->
         <div
           v-for="(day, i) in weekStore.days"
           :key="'s-' + i"
-          class="cal-cell"
-          :class="{ 'cal-cell--drop-target': dragOverDay === i }"
+          class="sessions-day"
+          :class="{ 'sessions-day--drop-target': dragOverDay === i, 'sessions-day--today': i === todayIndex }"
           :aria-dropeffect="uiStore.keyboardPlacementSessionType ? 'move' : 'none'"
           :aria-label="calendarCellLabel(i)"
           role="button"
@@ -38,17 +52,32 @@
           @keydown.enter.prevent="handleKeyboardDrop(i)"
           @keydown.space.prevent="handleKeyboardDrop(i)"
         >
+          <!-- Hour grid lines -->
+          <div
+            v-for="h in allHours"
+            :key="'gl-' + h"
+            class="hour-line"
+            :class="{ 'hour-line--major': h % 2 === 0 }"
+            :style="{ top: hourToPercent(h) + '%' }"
+            aria-hidden="true"
+          ></div>
+
           <!-- Session blocks -->
           <div
             v-for="session in weekStore.sessionsByDay[i]"
             :key="session.id"
             class="session-block"
             :class="[`session-block--${session.type}`, `session-block--${session.load}`]"
-            :style="{ '--sess-color': getSessionColor(session.type) }"
-            @click="uiStore.openEditPanel(session.id)"
-            :aria-label="`Editar: ${session.label}, ${formatDuration(session.duration)}, intensitat ${session.intensity}`"
+            :style="{
+              '--sess-color': getSessionColor(session.type),
+              top: sessionTop(session),
+              height: sessionHeight(session),
+            }"
+            @mouseenter="openPreview(session.id, $event)"
+            @mouseleave="uiStore.scheduleClosePreviewSession()"
+            :aria-label="`Veure: ${session.label}, ${formatDuration(session.duration)}, intensitat ${session.intensity}`"
             tabindex="0"
-            @keydown.enter="uiStore.openEditPanel(session.id)"
+            @keydown.enter="openPreview(session.id, $event)"
           >
             <div class="session-block__header">
               <span class="material-symbols-rounded session-block__icon">{{ getSessionIcon(session.type) }}</span>
@@ -59,12 +88,6 @@
             </div>
             <span class="session-block__label">{{ session.label }}</span>
             <div class="session-block__kcal">{{ session.kcal }} kcal · {{ session.intensity }}</div>
-          </div>
-
-          <!-- Empty cell drop hint -->
-          <div v-if="weekStore.sessionsByDay[i].length === 0" class="cal-cell__empty">
-            <span class="material-symbols-rounded" aria-hidden="true">add_circle</span>
-            <span>Afegeix sessió</span>
           </div>
         </div>
       </div>
@@ -77,6 +100,9 @@
         Àpats
       </div>
       <div class="cal-track__cells">
+        <!-- Spacer to align with time ruler -->
+        <div class="meals-spacer" aria-hidden="true"></div>
+
         <div
           v-for="(meal, i) in weekStore.meals"
           :key="'m-' + i"
@@ -117,7 +143,7 @@
         </div>
       </div>
     </div>
-  </div>
+  </div>  
 </template>
 
 <script setup>
@@ -134,6 +160,34 @@ const props = defineProps({
 
 const dragOverDay = ref(null)
 const emit = defineEmits(['dropSession'])
+
+// Time grid constants
+const TIME_START = 6   // 6:00
+const TIME_END   = 22  // 22:00
+const TIME_RANGE = TIME_END - TIME_START
+
+// Lines at every hour, labels every 2h
+const allHours  = Array.from({ length: TIME_RANGE + 1 }, (_, i) => TIME_START + i)
+const timeHours = allHours.filter(h => h % 2 === 0)
+
+function hourToPercent(h) {
+  return ((h - TIME_START) / TIME_RANGE) * 100
+}
+
+function formatHour(h) {
+  return `${String(h).padStart(2, '0')}:00`
+}
+
+function sessionTop(session) {
+  const start = session.startTime ?? 8
+  const clamped = Math.max(TIME_START, Math.min(TIME_END, start))
+  return hourToPercent(clamped) + '%'
+}
+
+function sessionHeight(session) {
+  const hours = session.duration / 60
+  return (hours / TIME_RANGE) * 100 + '%'
+}
 
 const todayIndex = computed(() => {
   const day = new Date().getDay()
@@ -161,6 +215,11 @@ function getSessionColor(type) {
 
 function getSessionIcon(type) {
   return weekStore.sessionTypes[type]?.icon ?? 'fitness_center'
+}
+
+function openPreview(sessionId, event) {
+  const rect = event.currentTarget?.getBoundingClientRect?.() ?? null
+  uiStore.openPreviewSession(sessionId, rect)
 }
 
 function handleDrop(dayIndex, event) {
@@ -212,16 +271,22 @@ function statusLabel(status) {
   border: 1px solid var(--border);
   overflow: hidden;
   box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
 }
 
 /* Header */
 .cal-header {
   display: grid;
-  grid-template-columns: 100px repeat(7, 1fr);
+  grid-template-columns: 100px 48px repeat(7, 1fr);
   background: var(--surface-2);
   border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
 }
 .cal-header__gutter { padding: 16px 16px; }
+.cal-header__time-gap { border-left: 1px solid var(--border); }
 .cal-header__day {
   padding: 14px 8px;
   display: flex;
@@ -241,9 +306,20 @@ function statusLabel(status) {
 }
 .day-num--today { background: var(--accent); color: var(--navy); }
 
-/* Track */
-.cal-track { display: grid; grid-template-columns: 100px 1fr; }
-.cal-track--meals { border-top: 2px solid var(--border); }
+/* ── Tracks ─────────────────────────────────────────────── */
+.cal-track {
+  display: grid;
+  grid-template-columns: 100px 1fr;
+  grid-template-rows: 1fr;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.cal-track--meals {
+  flex: 0 0 160px;
+  border-top: 2px solid var(--border);
+  overflow: hidden;
+}
 
 .cal-track__label {
   display: flex;
@@ -263,14 +339,133 @@ function statusLabel(status) {
 }
 .cal-track__label .material-symbols-rounded { font-size: 18px; color: var(--text-3); }
 
+/* ── Sessions content (time-ruler + 7 day columns) ───────── */
+.sessions-content {
+  display: grid;
+  grid-template-columns: 48px repeat(7, 1fr);
+  grid-template-rows: 1fr;
+  overflow: hidden;
+}
+
+/* Time ruler */
+.time-ruler {
+  position: relative;
+  background: var(--surface-2);
+  border-right: 1px solid var(--border);
+}
+.time-ruler__label {
+  position: absolute;
+  right: 6px;
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--text-3);
+  transform: translateY(-50%);
+  white-space: nowrap;
+  letter-spacing: 0.2px;
+}
+
+/* Day columns (sessions) */
+.sessions-day {
+  position: relative;
+  border-left: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  overflow: hidden;
+  cursor: default;
+  transition: background var(--dur-fast);
+}
+.sessions-day--today { background: rgba(0, 200, 150, 0.03); }
+.sessions-day--drop-target {
+  background: var(--accent-light);
+  border-color: var(--accent);
+}
+
+/* Hour grid lines */
+.hour-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 1px solid var(--border);
+  pointer-events: none;
+}
+.hour-line--major { border-top-color: var(--border-2); }
+
+/* Empty drop hint */
+.sessions-day__empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: var(--text-3);
+  font-size: 11px;
+  opacity: 0;
+  transition: opacity var(--dur-fast);
+}
+.sessions-day:hover .sessions-day__empty,
+.sessions-day--drop-target .sessions-day__empty { opacity: 1; }
+.sessions-day__empty .material-symbols-rounded { font-size: 18px; }
+
+/* ── Session blocks (absolutely positioned by time) ─────── */
+.session-block {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  min-height: 24px;
+  background: color-mix(in srgb, var(--sess-color) 14%, var(--surface));
+  border: 1.5px solid color-mix(in srgb, var(--sess-color) 35%, transparent);
+  border-radius: var(--radius-md);
+  padding: 5px 7px;
+  cursor: pointer;
+  overflow: hidden;
+  transition: all var(--dur-fast);
+  outline: none;
+  z-index: 1;
+}
+.session-block:hover {
+  background: color-mix(in srgb, var(--sess-color) 22%, var(--surface));
+  border-color: var(--sess-color);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--sess-color) 30%, transparent);
+  z-index: 2;
+}
+.session-block:focus-visible {
+  outline: 2px solid var(--sess-color);
+  outline-offset: 2px;
+}
+.session-block--high {
+  border-color: color-mix(in srgb, var(--warning) 55%, transparent);
+  background: color-mix(in srgb, var(--warning) 9%, var(--surface));
+}
+
+.session-block__header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 2px;
+}
+.session-block__icon { font-size: 12px; color: var(--sess-color); flex-shrink: 0; }
+.session-block__duration { font-size: 10px; font-weight: 700; color: var(--sess-color); flex: 1; }
+.session-block__warn .material-symbols-rounded { font-size: 12px; color: var(--warning); }
+.session-block__label { font-size: 10px; font-weight: 600; color: var(--text); line-height: 1.3; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.session-block__kcal { font-size: 9px; color: var(--text-3); margin-top: 1px; }
+
+/* ── Meals track cells ──────────────────────────────────── */
 .cal-track__cells {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: 48px repeat(7, 1fr);
+  grid-template-rows: 1fr;
+  overflow: hidden;
+}
+
+/* Spacer aligns meal columns with session day columns */
+.meals-spacer {
+  background: var(--surface-2);
+  border-right: 1px solid var(--border);
 }
 
 /* Cell */
 .cal-cell {
-  min-height: 110px;
   padding: 8px;
   border-left: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
@@ -279,72 +474,9 @@ function statusLabel(status) {
   gap: 6px;
   transition: background var(--dur-fast);
 }
-.cal-cell--drop-target { background: var(--accent-light); border-color: var(--accent); }
-
-.cal-cell__empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  height: 100%;
-  color: var(--text-3);
-  font-size: 11px;
-  cursor: pointer;
-  border-radius: var(--radius-md);
-  border: 2px dashed var(--border);
-  transition: all var(--dur-fast);
-  padding: 12px;
-  text-align: center;
-}
-.cal-cell__empty:hover { background: var(--surface-2); border-color: var(--border-2); color: var(--text-2); }
-.cal-cell__empty .material-symbols-rounded { font-size: 20px; }
-
-/* Session block */
-.session-block {
-  background: color-mix(in srgb, var(--sess-color) 12%, transparent);
-  border: 1.5px solid color-mix(in srgb, var(--sess-color) 30%, transparent);
-  border-radius: var(--radius-md);
-  padding: 8px 10px;
-  cursor: pointer;
-  transition: all var(--dur-fast);
-  position: relative;
-  outline: none;
-}
-.session-block:hover {
-  background: color-mix(in srgb, var(--sess-color) 20%, transparent);
-  border-color: var(--sess-color);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px color-mix(in srgb, var(--sess-color) 25%, transparent);
-}
-.session-block:focus-visible {
-  outline: 2px solid var(--sess-color);
-  outline-offset: 2px;
-}
-.session-block--high {
-  border-color: color-mix(in srgb, var(--warning) 50%, transparent);
-  background: color-mix(in srgb, var(--warning) 8%, transparent);
-}
-
-.session-block__header {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  margin-bottom: 3px;
-}
-.session-block__icon { font-size: 14px; color: var(--sess-color); }
-.session-block__duration {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--sess-color);
-  flex: 1;
-}
-.session-block__warn .material-symbols-rounded { font-size: 13px; color: var(--warning); }
-.session-block__label { font-size: 11px; font-weight: 600; color: var(--text); line-height: 1.3; display: block; }
-.session-block__kcal { font-size: 10px; color: var(--text-3); margin-top: 2px; }
 
 /* Meal cell */
-.meal-cell { min-height: 90px; justify-content: space-between; }
+.meal-cell { justify-content: space-between; }
 .meal-cell--warning { background: rgba(255,122,53,0.04); }
 .meal-cell--warning .meal-kcal-val { color: var(--warning); }
 

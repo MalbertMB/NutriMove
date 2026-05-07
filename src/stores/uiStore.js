@@ -1,85 +1,153 @@
-import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { defineStore } from "pinia";
+import { ref } from "vue";
 
-export const useUIStore = defineStore('ui', () => {
-  // Toast notifications
-  const toasts = ref([])
-  let toastId = 0
+export const useUIStore = defineStore("ui", () => {
+	// Toast notifications
+	const toasts = ref([]);
+	let toastId = 0;
 
-  function showToast(message, type = 'success', duration = 3500) {
-    const id = ++toastId
-    toasts.value.push({ id, message, type })
-    setTimeout(() => removeToast(id), duration)
-    return id
-  }
+	function showToast(message, type = "success", duration = 3500) {
+		const id = ++toastId;
+		toasts.value.push({ id, message, type });
+		setTimeout(() => removeToast(id), duration);
+		return id;
+	}
 
-  function removeToast(id) {
-    const idx = toasts.value.findIndex(t => t.id === id)
-    if (idx !== -1) toasts.value.splice(idx, 1)
-  }
+	function removeToast(id) {
+		const idx = toasts.value.findIndex((t) => t.id === id);
+		if (idx !== -1) toasts.value.splice(idx, 1);
+	}
 
-  // Session edit panel (Task 1)
-  const editPanelOpen = ref(false)
-  const editingSessionId = ref(null)
+	// Session edit panel (Task 1)
+	const editPanelOpen = ref(false);
+	const editingSessionId = ref(null);
 
-  function openEditPanel(sessionId) {
-    editingSessionId.value = sessionId
-    editPanelOpen.value = true
-  }
+	function openEditPanel(sessionId) {
+		editingSessionId.value = sessionId;
+		editPanelOpen.value = true;
+	}
 
-  function closeEditPanel() {
-    editPanelOpen.value = false
-    editingSessionId.value = null
-  }
+	function closeEditPanel() {
+		editPanelOpen.value = false;
+		editingSessionId.value = null;
+	}
 
-  // AI Popover (anchored to block – Task 1)
-  const aiPopoverOpen = ref(false)
-  const aiPopoverContext = ref(null)
+	// Session preview card (read-only, anchored to calendar block)
+	const previewSessionId = ref(null);
+	const previewAnchorRect = ref(null);
+	let _previewCloseTimer = null;
 
-  function showAIPopover(context) {
-    aiPopoverContext.value = context
-    aiPopoverOpen.value = true
-  }
+	function openPreviewSession(sessionId, anchorRect = null) {
+		if (_previewCloseTimer) {
+			clearTimeout(_previewCloseTimer);
+			_previewCloseTimer = null;
+		}
+		setTimeout(() => {
+			previewSessionId.value = sessionId;
+			previewAnchorRect.value = anchorRect
+				? {
+						top: anchorRect.top,
+						right: anchorRect.right,
+						bottom: anchorRect.bottom,
+						left: anchorRect.left,
+						width: anchorRect.width,
+						height: anchorRect.height,
+					}
+				: null;
+		}, 150);
+	}
 
-  function closeAIPopover() {
-    aiPopoverOpen.value = false
-    aiPopoverContext.value = null
-  }
+	function scheduleClosePreviewSession() {
+		_previewCloseTimer = setTimeout(() => {
+			previewSessionId.value = null;
+			previewAnchorRect.value = null;
+			_previewCloseTimer = null;
+		}, 180);
+	}
 
-  // AI Drawer (full panel – Task 2)
-  const aiDrawerOpen = ref(false)
-  const aiDrawerContext = ref(null)
+	function cancelClosePreviewSession() {
+		if (_previewCloseTimer) {
+			clearTimeout(_previewCloseTimer);
+			_previewCloseTimer = null;
+		}
+	}
 
-  function showAIDrawer(context) {
-    aiDrawerContext.value = context
-    aiDrawerOpen.value = true
-  }
+	function closePreviewSession() {
+		if (_previewCloseTimer) {
+			clearTimeout(_previewCloseTimer);
+			_previewCloseTimer = null;
+		}
+		previewSessionId.value = null;
+		previewAnchorRect.value = null;
+	}
 
-  function closeAIDrawer() {
-    aiDrawerOpen.value = false
-    aiDrawerContext.value = null
-  }
+	// AI Popover (anchored to block – Task 1)
+	const aiPopoverOpen = ref(false);
+	const aiPopoverContext = ref(null);
 
-  // Library panel (drag source - Task 2)
-  const libraryOpen = ref(true)
+	function showAIPopover(context) {
+		aiPopoverContext.value = context;
+		aiPopoverOpen.value = true;
+	}
 
-  // Keyboard fallback for session placement
-  const keyboardPlacementSessionType = ref(null)
+	function closeAIPopover() {
+		aiPopoverOpen.value = false;
+		aiPopoverContext.value = null;
+	}
 
-  function startKeyboardSessionPlacement(type) {
-    keyboardPlacementSessionType.value = type
-  }
+	// AI Drawer (full panel – Task 2)
+	const aiDrawerOpen = ref(false);
+	const aiDrawerContext = ref(null);
 
-  function cancelKeyboardSessionPlacement() {
-    keyboardPlacementSessionType.value = null
-  }
+	function showAIDrawer(context) {
+		aiDrawerContext.value = context;
+		aiDrawerOpen.value = true;
+	}
 
-  return {
-    toasts, showToast, removeToast,
-    editPanelOpen, editingSessionId, openEditPanel, closeEditPanel,
-    aiPopoverOpen, aiPopoverContext, showAIPopover, closeAIPopover,
-    aiDrawerOpen, aiDrawerContext, showAIDrawer, closeAIDrawer,
-    libraryOpen,
-    keyboardPlacementSessionType, startKeyboardSessionPlacement, cancelKeyboardSessionPlacement
-  }
-})
+	function closeAIDrawer() {
+		aiDrawerOpen.value = false;
+		aiDrawerContext.value = null;
+	}
+
+	// Library panel (drag source - Task 2)
+	const libraryOpen = ref(true);
+
+	// Keyboard fallback for session placement
+	const keyboardPlacementSessionType = ref(null);
+
+	function startKeyboardSessionPlacement(type) {
+		keyboardPlacementSessionType.value = type;
+	}
+
+	function cancelKeyboardSessionPlacement() {
+		keyboardPlacementSessionType.value = null;
+	}
+
+	return {
+		toasts,
+		showToast,
+		removeToast,
+		editPanelOpen,
+		editingSessionId,
+		openEditPanel,
+		closeEditPanel,
+		aiPopoverOpen,
+		aiPopoverContext,
+		showAIPopover,
+		closeAIPopover,
+		aiDrawerOpen,
+		aiDrawerContext,
+		showAIDrawer,
+		closeAIDrawer,
+		previewSessionId,
+		previewAnchorRect,
+		openPreviewSession,
+		scheduleClosePreviewSession,
+		cancelClosePreviewSession,
+		closePreviewSession,
+		libraryOpen,
+		keyboardPlacementSessionType,
+		startKeyboardSessionPlacement,
+		cancelKeyboardSessionPlacement,
+	};
+});

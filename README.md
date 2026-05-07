@@ -1070,5 +1070,90 @@ En la configuració del perfil, un camp de text obert amb placeholder "Vull…" 
 
 ---
 
+## 20. Estat d'implementació
+
+### 20.1 Funcionalitats pendents
+
+Les funcionalitats següents estan especificades al document P2 però encara no s'han implementat al codebase.
+
+| Prioritat | Funcionalitat | Secció relacionada |
+|-----------|--------------|-------------------|
+| Alta | **Macro progress bars al Dashboard** — Les barres de progrés de carbohidrats, proteïna i greix han d'aparèixer a les cel·les d'àpats del calendari setmanal, no únicament a `/apats`. Jordi ho va demanar explícitament al feedback del prototip final. | §4.4, §6.2 |
+| Alta | **Editor d'àpats inline** — Clicar un slot d'àpat (Esmorzar, Dinar, Berenar, Sopar) ha d'obrir un formulari d'expansió progressiva que permeti editar aliments i quantitats. Ara les targetes són de lectura. | §6.3 |
+| Alta | **Campana de notificacions funcional** — El badge mostra un valor codificat ("2") però el botó no obre cap panell. Ha de mostrar una llista d'alertes predictives generades per l'Assistent NutriMove. | §3.3, §13.2 |
+| Alta | **Notificació predictiva automàtica** — El sistema ha de generar consells nous i mostrar un toast ("Nou consell de l'Assistent NutriMove disponible") quan detecta desajustos nutricionals sense que l'usuari interactuï. Descrit al Moment 3 de la Persona. | §7.4, §13 |
+| Mitjana | **Navegació de setmana amb dates reals** — Els botons ← → al TopBar canvien `weekOffset` però no calculen cap rang de dates real. L'etiqueta i les dades del calendari no s'actualitzen en navegar. | §4.5 |
+| Mitjana | **Validació de formulari al panell d'edició** — El `SessionEditPanel` no valida cap camp. Cal verificar que els valors de durada i intensitat siguin vàlids abans d'activar el botó "Aplica el canvi". | §10.1 |
+| Mitjana | **Edició d'objectius del perfil** — El botó "Editar objectius" a `/jo` no té cap handler. Els objectius estan codificats estàticament al component i no provenen del store. | §9.3 |
+| Baixa | **Modes Senzill / Avançat** — L'especificació preveu dos nivells d'interfície: Mode Senzill (to empàtic, menys mètriques) i Mode Avançat (totes les dades, to basat en dades). El toggle ja apareix al perfil però no té cap lògica condicional associada. | §3.3, §9.3 |
+| Baixa | **Persistència de dades entre sessions** — Tota la data es perd en recarregar la pàgina (excepte l'autenticació). Caldria persistir `weekStore` a `localStorage` perquè l'usuari pugui continuar la planificació en sessions posteriors. | §15 |
+| Baixa | **Historial de sessions (vista pròpia)** — La navegació secundària de Sessions inclou "Historial de sessions" però no hi ha cap vista real amb dades cronològiques de sessions passades. | §5, §2.2 |
+| Baixa | **Log d'àpats diari (línia de temps)** — L'apartat "Log d'àpats" a `/apats` mostra un resum tabular però no la línia de temps vertical diària descrita a l'especificació. | §6.4 |
+| Baixa | **Tutorial d'onboarding** — El flux de tres passos (benvinguda → qüestionari de perfil → tutorial interactiu amb spotlight) no està implementat. | §18 |
+
+### 20.2 Bugs coneguts
+
+Els errors següents s'han identificat analitzant el codebase actual.
+
+#### Bug 1 — AIPopover no es dispara després d'editar una sessió `Alta`
+
+**Impacte**: Alt — afecta el flux principal de la Tasca 1.
+
+Quan l'usuari fa clic a "Aplica el canvi" al `SessionEditPanel`, la sessió s'actualitza al store i el panell es tanca, però el popover de l'Assistent NutriMove **no apareix**. La crida a `uiStore.showAIPopover()` amb el context de la sessió editada no s'executa en cap moment.
+
+**Fitxers afectats**: `src/components/session/SessionEditPanel.vue`
+
+**Comportament esperat**: 400ms després de tancar el panell, si la sessió té `load === 'high'`, ha d'aparèixer l'`AIPopover` amb les dades de la sessió (durada, intensitat, kcal extra estimades, missatge justificat).
+
+---
+
+#### Bug 2 — AIDrawer s'obre sense context real
+
+**Impacte**: Alt — afecta el flux principal de la Tasca 2.
+
+Quan l'usuari fa clic al banner "Revisar nutrició amb IA" del Dashboard, el drawer s'obre però els camps `ctx.day`, `ctx.totalKcal`, `ctx.analysis` i `ctx.adjustments` no es construeixen amb dades reals de la setmana. El component rep un context buit o amb valors placeholder.
+
+**Fitxers afectats**: `src/views/DashboardView.vue`
+
+**Comportament esperat**: En invocar `openWeekAIDrawer()`, s'ha de calcular el context a partir de l'estat actual de `weekStore` (dies en `warning`, kcal acumulades, ajustos suggerits per dia) i passar-lo a `uiStore.showAIDrawer({ ... })`.
+
+---
+
+#### Bug 3 — Navegació de setmana no calcula dates reals
+
+**Impacte**: Mitjà — degradació de l'experiència de planificació setmanal.
+
+Els botons ← → del TopBar incrementen/decrementen `weekOffset` però no existeix cap funció que tradueixi aquest offset a un rang de dates real. L'etiqueta de la setmana mostra un valor estàtic o incorrecte, i les sessions i àpats visualitzats no canvien en navegar.
+
+**Fitxers afectats**: `src/views/DashboardView.vue`, `src/stores/weekStore.js`
+
+**Comportament esperat**: Cada canvi de `weekOffset` ha de recalcular el dilluns de la setmana objectiu i mostrar el rang "DD mmm – DD mmm" corresponent. Les sessions i àpats s'han de filtrar o generar per a la setmana seleccionada.
+
+---
+
+#### Bug 4 — Drop zones del calendari sense feedback visual complet
+
+**Impacte**: Mitjà — la mecànica de drag & drop no és clara durant l'arrossegament.
+
+L'estat `dragOverDay` existeix al component però les classes CSS associades a la zona de drop activa (fons `--accent-light`, vora `--accent`) no sempre s'apliquen correctament, fent que l'usuari no vegi amb claredat on caurà la sessió.
+
+**Fitxers afectats**: `src/components/dashboard/WeekCalendar.vue`
+
+**Comportament esperat**: Mentre el cursor arrossega una sessió i passa per sobre d'una cel·la de dia, la cel·la ha de mostrar el fons i la vora d'`--accent` en `150ms`; en sortir de la cel·la, ha de tornar al seu estat normal.
+
+---
+
+#### Bug 5 — Toast de confirmació no es dispara en eliminar una sessió
+
+**Impacte**: Baix — falta de retroalimentació en una acció destructiva.
+
+El mètode `deleteSession()` al `SessionEditPanel` elimina correctament la sessió del store, però el toast "Sessió eliminada." de tipus `info` pot no disparar-se si el panell comença a tancar-se abans que el store hagi completat l'actualització reactiva.
+
+**Fitxers afectats**: `src/components/session/SessionEditPanel.vue`
+
+**Comportament esperat**: Després de confirmar l'eliminació, el toast ha d'aparèixer de forma garantida independentment de l'ordre de les actualitzacions del store.
+
+---
+
 *Fi del document d'especificació tècnica de NutriMove*  
 *Grup AF1 · FHiC 25-26 · Versió 1.0 · Abril 2026*

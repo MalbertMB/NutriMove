@@ -7,7 +7,7 @@
       role="dialog"
       aria-modal="true"
       :aria-label="`Editar sessió: ${session.label}`"
-      @keydown.esc.prevent="uiStore.closeEditPanel()"
+      @keydown.esc.prevent="cancelAndClose()"
     >
       <div class="edit-panel__header">
         <div class="edit-panel__title-row">
@@ -19,12 +19,44 @@
             <span class="edit-panel__day">{{ dayName }}</span>
           </div>
         </div>
-        <button ref="closeBtnRef" class="close-btn" @click="uiStore.closeEditPanel()" aria-label="Tancar">
+        <button ref="closeBtnRef" class="close-btn" @click="cancelAndClose()" aria-label="Tancar">
           <span class="material-symbols-rounded">close</span>
         </button>
       </div>
 
       <div class="edit-panel__body">
+        <!-- Time field -->
+        <div class="field">
+          <label id="time-label" class="field__label">Hora d'inici</label>
+          <div class="time-field">
+            <div class="time-display">
+              <span class="material-symbols-rounded time-display__icon">schedule</span>
+              <span class="time-display__value">{{ formatHourDisplay(localStartTime) }}</span>
+            </div>
+            <div class="time-slider-wrap">
+              <input
+                type="range"
+                class="time-slider"
+                :min="TIME_START"
+                :max="TIME_END"
+                step="0.5"
+                v-model.number="localStartTime"
+                :style="{ background: sliderBg }"
+                aria-labelledby="time-label"
+                @input="onTimeChange"
+              />
+              <div class="time-ticks" aria-hidden="true">
+                <span
+                  v-for="h in tickHours"
+                  :key="h"
+                  class="time-tick"
+                  :style="{ left: hourToPercent(h) + '%' }"
+                >{{ h }}h</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Duration field -->
         <div class="field">
           <label id="duration-label" class="field__label">Durada</label>
@@ -95,7 +127,7 @@
 
       <div class="edit-panel__footer">
         <div class="footer-left">
-          <button class="btn btn--ghost" @click="uiStore.closeEditPanel()">Ara no</button>
+          <button class="btn btn--ghost" @click="cancelAndClose()">Ara no</button>
           <button class="btn btn--danger" @click="deleteSession">
             <span class="material-symbols-rounded">delete_outline</span>
             Elimina
@@ -111,7 +143,7 @@
 
   <!-- Backdrop -->
   <transition name="fade">
-    <div v-if="uiStore.editPanelOpen" class="backdrop" @click="uiStore.closeEditPanel()" aria-hidden="true"></div>
+    <div v-if="uiStore.editPanelOpen" class="backdrop" @click="cancelAndClose()" aria-hidden="true"></div>
   </transition>
 </template>
 
@@ -125,6 +157,11 @@ const uiStore = useUIStore()
 const panelRef = ref(null)
 const closeBtnRef = ref(null)
 let lastFocusedElement = null
+
+const TIME_START = 6
+const TIME_END = 22
+const TIME_RANGE = TIME_END - TIME_START
+const tickHours = [6, 9, 12, 15, 18, 21]
 
 const session = computed(() => {
   if (!uiStore.editingSessionId) return null
@@ -141,32 +178,69 @@ const dayName = computed(() => session.value ? weekStore.daysFull[session.value.
 const localDuration = ref(60)
 const localIntensity = ref('Moderada')
 const localNotes = ref('')
+const localStartTime = ref(8)
 
-watch(session, (s) => {
-  if (s) {
-    localDuration.value = s.duration
-    localIntensity.value = s.intensity
-    localNotes.value = s.notes || ''
-  }
-}, { immediate: true })
+let snapDuration = 60
+let snapIntensity = 'Moderada'
+let snapStartTime = 8
 
 watch(() => uiStore.editPanelOpen, async (open) => {
   if (open) {
     lastFocusedElement = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    const s = session.value
+    if (s) {
+      localDuration.value = s.duration
+      localIntensity.value = s.intensity
+      localNotes.value = s.notes || ''
+      localStartTime.value = s.startTime ?? 8
+      snapDuration = s.duration
+      snapIntensity = s.intensity
+      snapStartTime = s.startTime ?? 8
+    }
     await nextTick()
     closeBtnRef.value?.focus()
     return
   }
-
   await nextTick()
   lastFocusedElement?.focus?.()
   lastFocusedElement = null
 })
 
+const sliderBg = computed(() => {
+  const pct = ((localStartTime.value - TIME_START) / TIME_RANGE) * 100
+  return `linear-gradient(to right, var(--accent) 0%, var(--accent) ${pct}%, var(--border) ${pct}%, var(--border) 100%)`
+})
+
+function formatHourDisplay(h) {
+  const hours = Math.floor(h)
+  const mins = h % 1 === 0.5 ? '30' : '00'
+  return `${String(hours).padStart(2, '0')}:${mins}`
+}
+
+function hourToPercent(h) {
+  return ((h - TIME_START) / TIME_RANGE) * 100
+}
+
+function onTimeChange() {
+  if (!session.value) return
+  weekStore.updateSession(session.value.id, { startTime: localStartTime.value })
+}
+
+function cancelAndClose() {
+  if (session.value) {
+    weekStore.updateSession(session.value.id, { startTime: snapStartTime })
+    localStartTime.value = snapStartTime
+    localDuration.value = snapDuration
+    localIntensity.value = snapIntensity
+  }
+  uiStore.closeEditPanel()
+}
+
 const hasChanges = computed(() => {
   if (!session.value) return false
-  return localDuration.value !== session.value.duration ||
-    localIntensity.value !== session.value.intensity
+  return localDuration.value !== snapDuration ||
+    localIntensity.value !== snapIntensity ||
+    localStartTime.value !== snapStartTime
 })
 
 const durationOptions = [
@@ -207,7 +281,8 @@ function applyChanges() {
   weekStore.updateSession(session.value.id, {
     duration: localDuration.value,
     intensity: localIntensity.value,
-    notes: localNotes.value
+    notes: localNotes.value,
+    startTime: localStartTime.value
   })
   uiStore.closeEditPanel()
 
@@ -402,6 +477,56 @@ function deleteSession() {
   background: rgba(0,0,0,0.3);
   backdrop-filter: blur(2px);
   z-index: 199;
+}
+
+/* Time field */
+.time-field { display: flex; flex-direction: column; gap: 10px; }
+.time-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.time-display__icon { font-size: 16px; color: var(--accent); }
+.time-display__value { font-family: var(--font-display); font-size: 22px; font-weight: 700; color: var(--text); letter-spacing: 1px; }
+
+.time-slider-wrap { position: relative; padding-bottom: 20px; }
+.time-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+.time-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-light);
+  cursor: pointer;
+  transition: box-shadow var(--dur-fast);
+}
+.time-slider::-webkit-slider-thumb:hover { box-shadow: 0 0 0 5px var(--accent-light); }
+.time-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: none;
+  cursor: pointer;
+}
+
+.time-ticks { position: absolute; bottom: 0; left: 0; right: 0; height: 16px; }
+.time-tick {
+  position: absolute;
+  transform: translateX(-50%);
+  font-size: 10px;
+  color: var(--text-3);
+  white-space: nowrap;
 }
 
 /* Transition */

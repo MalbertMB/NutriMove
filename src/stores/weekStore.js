@@ -15,10 +15,10 @@ const SESSION_TYPES = {
 
 function createDefaultSessions() {
   return [
-    { id: 1, day: 0, type: 'swimming', duration: 60, intensity: 'Moderada', label: 'Natació matinal', kcal: 420, load: 'normal' },
-    { id: 2, day: 2, type: 'strength', duration: 75, intensity: 'Alta', label: 'Força — upper body', kcal: 380, load: 'normal' },
-    { id: 3, day: 4, type: 'cycling', duration: 120, intensity: 'Moderada', label: 'Ruta de bici', kcal: 680, load: 'normal' },
-    { id: 4, day: 5, type: 'cycling', duration: 120, intensity: 'Moderada', label: 'Ruta dissabte', kcal: 680, load: 'normal' },
+    { id: 1, day: 0, type: 'swimming', duration: 60,  intensity: 'Moderada', label: 'Natació matinal',    kcal: 420, load: 'normal', startTime: 7   },
+    { id: 2, day: 2, type: 'strength', duration: 75,  intensity: 'Alta',     label: 'Força — upper body', kcal: 380, load: 'normal', startTime: 18  },
+    { id: 3, day: 4, type: 'cycling',  duration: 120, intensity: 'Moderada', label: 'Ruta de bici',       kcal: 680, load: 'normal', startTime: 9   },
+    { id: 4, day: 5, type: 'cycling',  duration: 120, intensity: 'Moderada', label: 'Ruta dissabte',      kcal: 680, load: 'normal', startTime: 8   },
   ]
 }
 
@@ -52,7 +52,7 @@ export const useWeekStore = defineStore('week', () => {
     return map
   })
 
-  function addSession(dayIndex, type, duration = 60, intensity = 'Moderada') {
+  function addSession(dayIndex, type, duration = 60, intensity = 'Moderada', startTime = 8) {
     const typeData = SESSION_TYPES[type]
     const kcal = Math.round((duration / 60) * (intensity === 'Alta' ? 560 : intensity === 'Baixa' ? 280 : 400))
     const newSession = {
@@ -63,7 +63,8 @@ export const useWeekStore = defineStore('week', () => {
       intensity,
       label: typeData.label,
       kcal,
-      load: intensity === 'Alta' || duration >= 240 ? 'high' : 'normal'
+      load: intensity === 'Alta' || duration >= 240 ? 'high' : 'normal',
+      startTime
     }
     sessions.value.push(newSession)
     checkLoadAndUpdateMeals(dayIndex)
