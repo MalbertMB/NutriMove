@@ -81,12 +81,12 @@
           >
             <div class="session-block__header">
               <span class="material-symbols-rounded session-block__icon">{{ getSessionIcon(session.type) }}</span>
+              <span class="session-block__label">{{ session.label }}</span>
               <span class="session-block__duration">{{ formatDuration(session.duration) }}</span>
               <span v-if="session.load === 'high'" class="session-block__warn" aria-label="Càrrega alta">
                 <span class="material-symbols-rounded icon-fill" aria-hidden="true">warning</span>
               </span>
             </div>
-            <span class="session-block__label">{{ session.label }}</span>
             <div class="session-block__kcal">{{ session.kcal }} kcal · {{ session.intensity }}</div>
           </div>
         </div>
@@ -316,7 +316,7 @@ function statusLabel(status) {
   overflow: hidden;
 }
 .cal-track--meals {
-  flex: 0 0 160px;
+  flex: 1;
   border-top: 2px solid var(--border);
   overflow: hidden;
 }
@@ -325,9 +325,9 @@ function statusLabel(status) {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: center;
   gap: 6px;
-  padding: 20px 12px;
+  padding: 12px;
   background: var(--surface-2);
   border-right: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
@@ -445,9 +445,9 @@ function statusLabel(status) {
   margin-bottom: 2px;
 }
 .session-block__icon { font-size: 12px; color: var(--sess-color); flex-shrink: 0; }
-.session-block__duration { font-size: 10px; font-weight: 700; color: var(--sess-color); flex: 1; }
+.session-block__label { font-size: 10px; font-weight: 600; color: var(--text); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.session-block__duration { font-size: 10px; font-weight: 700; color: var(--sess-color); flex-shrink: 0; }
 .session-block__warn .material-symbols-rounded { font-size: 12px; color: var(--warning); }
-.session-block__label { font-size: 10px; font-weight: 600; color: var(--text); line-height: 1.3; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .session-block__kcal { font-size: 9px; color: var(--text-3); margin-top: 1px; }
 
 /* ── Meals track cells ──────────────────────────────────── */

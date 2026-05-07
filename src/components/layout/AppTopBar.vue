@@ -23,18 +23,26 @@
       </button>
 
       <!-- Notifications bell -->
-      <button class="icon-btn" aria-label="Notificacions" @click="$emit('notifications')">
-        <span class="material-symbols-rounded">notifications</span>
-        <span class="notif-badge" aria-hidden="true">2</span>
+      <button
+        class="icon-btn"
+        :class="{ 'icon-btn--active': uiStore.notifPanelOpen }"
+        :aria-label="`Notificacions${uiStore.unreadCount > 0 ? `, ${uiStore.unreadCount} sense llegir` : ''}`"
+        :aria-expanded="uiStore.notifPanelOpen"
+        @click="uiStore.toggleNotifPanel()"
+      >
+        <span class="material-symbols-rounded">{{ uiStore.notifPanelOpen ? 'notifications' : 'notifications' }}</span>
+        <span v-if="uiStore.unreadCount > 0" class="notif-badge" aria-hidden="true">{{ uiStore.unreadCount }}</span>
       </button>
     </div>
   </header>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { useUIStore } from '@/stores/uiStore'
 
-const props = defineProps({
+const uiStore = useUIStore()
+
+defineProps({
   title: { type: String, required: true },
   subtitle: { type: String, default: '' },
   showWeekNav: { type: Boolean, default: false },
@@ -42,7 +50,7 @@ const props = defineProps({
   weekLabel: { type: String, default: 'Setmana actual' }
 })
 
-defineEmits(['prevWeek', 'nextWeek', 'save', 'notifications'])
+defineEmits(['prevWeek', 'nextWeek', 'save'])
 </script>
 
 <style scoped>
@@ -135,6 +143,7 @@ defineEmits(['prevWeek', 'nextWeek', 'save', 'notifications'])
   position: relative;
 }
 .icon-btn:hover { background: var(--surface-3); color: var(--text); }
+.icon-btn--active { background: var(--accent-light); color: var(--accent); border-color: var(--accent); }
 .notif-badge {
   position: absolute;
   top: 6px;

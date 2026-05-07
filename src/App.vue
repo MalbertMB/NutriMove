@@ -10,12 +10,14 @@
       </router-view>
     </div>
     <BaseToast />
+    <NotificationsPanel />
   </div>
 </template>
 
 <script setup>
 import AppSidebar from '@/components/layout/AppSidebar.vue'
 import BaseToast from '@/components/ui/BaseToast.vue'
+import NotificationsPanel from '@/components/ui/NotificationsPanel.vue'
 </script>
 
 <style>

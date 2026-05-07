@@ -13,7 +13,7 @@
           v-for="tip in tips"
           :key="tip.id"
           class="tip-card"
-          :class="`tip-card--${tip.type}`"
+          :class="[`tip-card--${tip.type}`, { 'tip-card--info-only': tip.action === 'none' }]"
           :style="{ animationDelay: tip.id * 80 + 'ms' }"
         >
           <div class="tip-card__header">
@@ -24,15 +24,34 @@
               <span class="tip-tag">{{ tip.tag }}</span>
               <span class="tip-time">Ara</span>
             </div>
-            <div class="tip-ai-badge">
+            <div v-if="tip.action !== 'none'" class="tip-ai-badge">
               <span class="material-symbols-rounded icon-fill">auto_awesome</span>
               IA
             </div>
           </div>
           <h3 class="tip-title">{{ tip.title }}</h3>
           <p class="tip-body">{{ tip.body }}</p>
-          <div class="tip-actions">
-            <button class="btn btn--primary" @click="applyTip(tip)">Aplica el bloc IA</button>
+
+          <!-- Adjustments preview -->
+          <div v-if="tip.adjustments?.length" class="tip-adjustments">
+            <div class="tip-adjustments__header">
+              <span class="material-symbols-rounded">tune</span>
+              {{ tip.adjustments.length }} ajust{{ tip.adjustments.length !== 1 ? 'os' : '' }} inclosos
+            </div>
+            <div v-for="adj in tip.adjustments" :key="adj.id" class="tip-adj">
+              <span class="phase-badge" :class="`phase-badge--${adj.phase}`">{{ phaseLabels[adj.phase] }}</span>
+              <span class="tip-adj__day">{{ adj.day }}</span>
+              <span class="tip-adj__sep">·</span>
+              <span class="tip-adj__meal">{{ adj.mealLabel }}</span>
+              <span class="tip-adj__label">{{ adj.label }}</span>
+              <span class="tip-adj__delta">{{ adj.delta }}</span>
+            </div>
+          </div>
+
+          <div v-if="tip.action !== 'none'" class="tip-actions">
+            <button class="btn btn--primary" @click="applyTip(tip)">
+              Aplica {{ tip.adjustments?.length ?? '' }} ajust{{ tip.adjustments?.length !== 1 ? 'os' : '' }}
+            </button>
             <button class="btn btn--ghost" @click="ignoreTip(tip)">Ara no</button>
           </div>
         </div>
@@ -68,6 +87,70 @@ const uiStore = useUIStore()
 const ignoredTips = ref([])
 const history = ref([])
 
+const phaseLabels = { pre: 'Pre-sessió', training: 'Sessió', recovery: 'Recuperació' }
+
+function generateAdjustments(highDays) {
+  const seenSlots = new Set()
+  const adjustments = []
+  for (const d of highDays) {
+    if (d > 0) {
+      const kL = `${d - 1}-lunch`
+      if (!seenSlots.has(kL)) {
+        seenSlots.add(kL)
+        adjustments.push({
+          id: `pre-${d}-lunch`, dayIndex: d - 1, day: weekStore.daysFull[d - 1],
+          phase: 'pre', mealSlot: 'lunch', mealLabel: 'Dinar',
+          label: 'Dinar de càrrega', detail: 'Arròs integral + llegums', delta: '+250 kcal · +45g hidrats',
+          extraKcal: 250, extraCarbs: 45, extraProtein: 0, item: 'Arròs integral (extra)'
+        })
+      }
+      const kD = `${d - 1}-dinner`
+      if (!seenSlots.has(kD)) {
+        seenSlots.add(kD)
+        adjustments.push({
+          id: `pre-${d}-dinner`, dayIndex: d - 1, day: weekStore.daysFull[d - 1],
+          phase: 'pre', mealSlot: 'dinner', mealLabel: 'Sopar',
+          label: 'Sopar de càrrega', detail: 'Pasta integral + salsa de tomàquet', delta: '+300 kcal · +50g hidrats',
+          extraKcal: 300, extraCarbs: 50, extraProtein: 0, item: 'Pasta de càrrega'
+        })
+      }
+    }
+    const kB = `${d}-breakfast`
+    if (!seenSlots.has(kB)) {
+      seenSlots.add(kB)
+      adjustments.push({
+        id: `training-${d}-breakfast`, dayIndex: d, day: weekStore.daysFull[d],
+        phase: 'training', mealSlot: 'breakfast', mealLabel: 'Esmorzar',
+        label: 'Esmorzar reforçat', detail: 'Civada + mel + plàtan madur', delta: '+200 kcal · +35g hidrats',
+        extraKcal: 200, extraCarbs: 35, extraProtein: 0, item: 'Civada reforçada'
+      })
+    }
+    const kS = `${d}-snack`
+    if (!seenSlots.has(kS)) {
+      seenSlots.add(kS)
+      adjustments.push({
+        id: `training-${d}-snack`, dayIndex: d, day: weekStore.daysFull[d],
+        phase: 'training', mealSlot: 'snack', mealLabel: 'Berenar',
+        label: 'Berenar pre-sessió', detail: 'Plàtan + barreta energètica', delta: '+180 kcal · +25g hidrats',
+        extraKcal: 180, extraCarbs: 25, extraProtein: 0, item: 'Berenar energètic'
+      })
+    }
+    if (d < 6) {
+      const kR = `${d + 1}-dinner`
+      if (!seenSlots.has(kR)) {
+        seenSlots.add(kR)
+        adjustments.push({
+          id: `recovery-${d}-dinner`, dayIndex: d + 1, day: weekStore.daysFull[d + 1],
+          phase: 'recovery', mealSlot: 'dinner', mealLabel: 'Sopar',
+          label: 'Sopar de recuperació', detail: 'Peix blau + quinoa + verdures', delta: '+200 kcal · +30g proteïna',
+          extraKcal: 200, extraCarbs: 0, extraProtein: 30, item: 'Proteïna de recuperació'
+        })
+      }
+    }
+  }
+  return adjustments
+}
+
 const tips = computed(() => {
   const list = []
   const warningDays = weekStore.meals
@@ -75,30 +158,34 @@ const tips = computed(() => {
     .filter(({ meal }) => meal.status === 'warning')
 
   warningDays.slice(0, 3).forEach(({ day }) => {
+    const adjustments = generateAdjustments([day])
     list.push({
       id: `meal-${day}`,
       type: 'nutrition',
       icon: 'restaurant',
       tag: 'Nutrició',
-      title: `Ajust de carbohidrats per ${weekStore.daysFull[day]}`,
-      body: `Aquest dia té càrrega alta. Aplica un increment nutricional automàtic de 300 kcal al sopar per millorar la recuperació.`,
+      title: `Planificació nutricional per ${weekStore.daysFull[day]}`,
+      body: `Dia de càrrega alta detectat. Es proposen ${adjustments.length} ajustos als àpats del dia i dels dies adjacents per optimitzar el rendiment i la recuperació.`,
       action: 'apply-day',
-      day
+      day,
+      adjustments
     })
   })
 
   if (warningDays.length >= 2) {
     const days = warningDays.map(({ day }) => day)
+    const adjustments = generateAdjustments(days)
     list.push({
       id: 'week-adjust',
       type: 'recovery',
       icon: 'auto_awesome',
       tag: 'Planificació',
       title: 'Ajust nutricional per tota la setmana intensa',
-      body: "S'han detectat diversos dies exigents. Pots aplicar una adaptació global de calories i carbohidrats als dies de càrrega.",
+      body: `S'han detectat ${warningDays.length} dies de càrrega alta. Es proposen ${adjustments.length} ajustos distribuïts per pre-càrrega, sessió i recuperació.`,
       action: 'apply-week',
       startDay: Math.min(...days),
-      endDay: Math.max(...days)
+      endDay: Math.max(...days),
+      adjustments
     })
   }
 
@@ -118,19 +205,31 @@ const tips = computed(() => {
 })
 
 function applyTip(tip) {
-  if (tip.action === 'apply-day') {
-    weekStore.applyAIMealAdjustment(tip.day)
-    uiStore.showToast(`Ajust aplicat a ${weekStore.daysFull[tip.day]}.`, 'success')
-    addHistory(`Ajust diari: ${weekStore.daysFull[tip.day]}`, 'applied')
-  } else if (tip.action === 'apply-week') {
-    weekStore.applyAIWeekAdjustment(tip.startDay, tip.endDay)
-    uiStore.showToast('Ajust setmanal aplicat.', 'success')
-    addHistory('Ajust nutricional setmanal', 'applied')
+  if (tip.action === 'apply-day' || tip.action === 'apply-week') {
+    for (const adj of tip.adjustments ?? []) {
+      weekStore.applyMealAdjustment(adj.dayIndex, {
+        mealSlot: adj.mealSlot,
+        extraKcal: adj.extraKcal,
+        extraCarbs: adj.extraCarbs,
+        extraProtein: adj.extraProtein,
+        item: adj.item
+      })
+    }
+    const n = tip.adjustments?.length ?? 0
+    const label = tip.action === 'apply-day'
+      ? `${n} ajust${n !== 1 ? 'os aplicats' : ' aplicat'} a ${weekStore.daysFull[tip.day]}.`
+      : `${n} ajust${n !== 1 ? 'os aplicats' : ' aplicat'} a tota la setmana.`
+    uiStore.showToast(label, 'success')
+    addHistory(
+      tip.action === 'apply-day'
+        ? `Ajust diari: ${weekStore.daysFull[tip.day]}`
+        : 'Ajust nutricional setmanal',
+      'applied'
+    )
   } else {
     uiStore.showToast('No cal aplicar canvis addicionals.', 'info')
     addHistory('Consell de manteniment revisat', 'applied')
   }
-
   ignoredTips.value = [...ignoredTips.value, tip.id]
 }
 
@@ -176,6 +275,14 @@ function formatNow() {
 .tip-card--recovery { border-left: 4px solid var(--purple); }
 .tip-card--performance { border-left: 4px solid var(--warning); }
 
+/* Targeta d'estat sense accions: lectura única */
+.tip-card--info-only {
+  border-left-color: var(--accent);
+  background: linear-gradient(135deg, rgba(0,200,150,0.04) 0%, var(--surface) 100%);
+}
+.tip-card--info-only .tip-icon { background: var(--accent-light); }
+.tip-card--info-only .tip-icon .material-symbols-rounded { color: var(--accent); }
+
 .tip-card__header { display: flex; align-items: center; gap: 10px; }
 .tip-icon {
   width: 40px; height: 40px;
@@ -206,7 +313,57 @@ function formatNow() {
 .tip-title { font-family: var(--font-display); font-size: 16px; font-weight: 700; color: var(--text); }
 .tip-body { font-size: 13px; color: var(--text-2); line-height: 1.65; }
 
-.tip-actions { display: flex; gap: 8px; }
+.tip-actions { display: flex; gap: 8px; align-items: center; }
+
+/* Phase badges */
+.phase-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 99px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.phase-badge--pre { background: var(--purple-light); color: var(--purple); }
+.phase-badge--training { background: var(--warning-light); color: var(--warning); }
+.phase-badge--recovery { background: var(--accent-light); color: var(--accent-dark); }
+
+/* Adjustments preview inside tip card */
+.tip-adjustments {
+  background: var(--surface-2);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.tip-adjustments__header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 3px;
+}
+.tip-adjustments__header .material-symbols-rounded { font-size: 14px; }
+
+.tip-adj {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  flex-wrap: wrap;
+}
+.tip-adj__day { font-weight: 600; color: var(--text-2); }
+.tip-adj__sep { color: var(--text-3); }
+.tip-adj__meal { color: var(--text-3); }
+.tip-adj__label { color: var(--text); font-weight: 500; flex: 1; min-width: 120px; }
+.tip-adj__delta { font-size: 11px; color: var(--accent-dark); font-weight: 500; white-space: nowrap; margin-left: auto; }
 
 /* History */
 .advice-history {
