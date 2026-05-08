@@ -3,13 +3,10 @@
     <!-- Topbar -->
     <AppTopBar
       title="Inici"
-      :subtitle="weekLabel"
       :show-week-nav="true"
-      :show-save="true"
       :week-label="weekLabel"
       @prev-week="weekOffset--"
       @next-week="weekOffset++"
-      @save="handleSave"
     />
 
     <!-- KPI strip -->
@@ -222,9 +219,7 @@ function openWeekAIDrawer() {
   })
 }
 
-function handleSave() {
-  uiStore.showToast('Setmana desada correctament.', 'success')
-}
+
 </script>
 
 <style scoped>

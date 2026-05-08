@@ -85,11 +85,15 @@
               top: sessionTop(session),
               height: sessionHeight(session),
             }"
+            draggable="true"
+            @dragstart.stop="handleSessionDragStart(session, $event)"
+            @dragend.stop="draggingSessionId = null"
             @mouseenter="openPreview(session.id, $event)"
             @mouseleave="uiStore.scheduleClosePreviewSession()"
-            :aria-label="`Veure: ${session.label}, ${formatDuration(session.duration)}, intensitat ${session.intensity}`"
+            :aria-label="`Editar: ${session.label}, ${formatDuration(session.duration)}, intensitat ${session.intensity}`"
             tabindex="0"
-            @keydown.enter="openPreview(session.id, $event)"
+            @click.stop="handleSessionClick(session.id)"
+            @keydown.enter.stop="handleSessionClick(session.id)"
           >
             <!-- ≤75min: icon + duration + name all inline -->
             <div v-if="session.duration <= 75" class="session-block__inline">
@@ -196,6 +200,7 @@ const props = defineProps({
 })
 
 const dragOverDay = ref(null)
+const draggingSessionId = ref(null)
 const emit = defineEmits(['dropSession'])
 const scrollRef = ref(null)
 const now = ref(new Date())
@@ -279,14 +284,38 @@ function getSessionIcon(type) {
 
 
 function openPreview(sessionId, event) {
+  if (draggingSessionId.value) return
   const rect = event.currentTarget?.getBoundingClientRect?.() ?? null
   uiStore.openPreviewSession(sessionId, rect)
 }
 
+function handleSessionClick(sessionId) {
+  uiStore.closePreviewSession()
+  uiStore.openEditPanel(sessionId)
+}
+
+function handleSessionDragStart(session, event) {
+  draggingSessionId.value = session.id
+  uiStore.closePreviewSession()
+  event.dataTransfer.setData('session-id', String(session.id))
+  event.dataTransfer.setData('session-type', '')
+  event.dataTransfer.effectAllowed = 'move'
+}
+
 function handleDrop(dayIndex, event) {
   dragOverDay.value = null
+  const sessionId = event.dataTransfer?.getData('session-id')
   const type = event.dataTransfer?.getData('session-type')
-  if (type) {
+
+  if (sessionId) {
+    const id = parseInt(sessionId)
+    const rect = event.currentTarget.getBoundingClientRect()
+    const rawHour = TIME_START + (event.clientY - rect.top) / HOUR_PX
+    const snapped = Math.round(rawHour * 2) / 2
+    const clamped = Math.max(0, Math.min(23.5, snapped))
+    weekStore.updateSession(id, { day: dayIndex, startTime: clamped })
+    uiStore.showToast(`Sessió moguda a ${weekStore.daysFull[dayIndex]}.`, 'success')
+  } else if (type) {
     emit('dropSession', { dayIndex, type })
   }
 }
@@ -528,12 +557,13 @@ function statusLabel(status) {
   border: 1.5px solid color-mix(in srgb, var(--sess-color) 35%, transparent);
   border-radius: var(--radius-md);
   padding: 5px 7px;
-  cursor: pointer;
+  cursor: grab;
   overflow: hidden;
   transition: all var(--dur-fast);
   outline: none;
   z-index: 1;
 }
+.session-block:active { cursor: grabbing; }
 .session-block:hover {
   background: color-mix(in srgb, var(--sess-color) 22%, var(--surface));
   border-color: var(--sess-color);

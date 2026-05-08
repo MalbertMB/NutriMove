@@ -31,7 +31,16 @@
           <div class="time-field">
             <div class="time-display">
               <span class="material-symbols-rounded time-display__icon">schedule</span>
-              <span class="time-display__value">{{ formatHourDisplay(localStartTime) }}</span>
+              <input
+                class="time-display__input"
+                type="text"
+                :value="formatHourDisplay(localStartTime)"
+                maxlength="5"
+                placeholder="HH:MM"
+                aria-label="Hora d'inici (HH:MM)"
+                @change="handleTimeTextInput"
+                @keydown.enter.prevent="$event.target.blur()"
+              />
             </div>
             <div class="time-slider-wrap">
               <input
@@ -65,12 +74,33 @@
               v-for="opt in durationOptions"
               :key="opt.value"
               class="dur-opt"
-              :class="{ active: localDuration === opt.value }"
-              @click="localDuration = opt.value"
-              :aria-pressed="localDuration === opt.value"
+              :class="{ active: localDuration === opt.value && !showCustomInput }"
+              @click="selectPresetDuration(opt.value)"
+              :aria-pressed="localDuration === opt.value && !showCustomInput"
             >
               {{ opt.label }}
             </button>
+            <button
+              class="dur-opt"
+              :class="{ active: showCustomInput }"
+              @click="toggleCustomInput"
+              :aria-pressed="showCustomInput"
+            >
+              Personalitzat
+            </button>
+          </div>
+          <div v-if="showCustomInput" class="custom-dur-wrap">
+            <input
+              type="number"
+              class="custom-dur-input"
+              v-model.number="customMinutes"
+              min="1"
+              max="600"
+              step="5"
+              aria-label="Durada en minuts"
+              @input="onCustomInput"
+            />
+            <span class="custom-dur-unit">min</span>
           </div>
           <p id="duration-hint" class="field__hint">Durada actual: <strong>{{ formatDuration(localDuration) }}</strong></p>
         </div>
@@ -196,6 +226,9 @@ watch(() => uiStore.editPanelOpen, async (open) => {
       snapDuration = s.duration
       snapIntensity = s.intensity
       snapStartTime = s.startTime ?? 8
+      const isPreset = durationOptions.some(o => o.value === s.duration)
+      showCustomInput.value = !isPreset
+      customMinutes.value = s.duration
     }
     await nextTick()
     closeBtnRef.value?.focus()
@@ -226,6 +259,23 @@ function onTimeChange() {
   weekStore.updateSession(session.value.id, { startTime: localStartTime.value })
 }
 
+function handleTimeTextInput(e) {
+  const val = e.target.value.trim()
+  const match = val.match(/^(\d{1,2}):(\d{2})$/)
+  if (!match) { e.target.value = formatHourDisplay(localStartTime.value); return }
+  const h = parseInt(match[1])
+  const m = parseInt(match[2])
+  if (h > 23 || m > 59) { e.target.value = formatHourDisplay(localStartTime.value); return }
+  const snapped = Math.round((h + m / 60) * 2) / 2
+  localStartTime.value = Math.max(TIME_START, Math.min(TIME_END, snapped))
+  onTimeChange()
+}
+
+const todayDayIndex = computed(() => {
+  const d = new Date().getDay()
+  return d === 0 ? 6 : d - 1
+})
+
 function cancelAndClose() {
   if (session.value) {
     weekStore.updateSession(session.value.id, { startTime: snapStartTime })
@@ -248,9 +298,28 @@ const durationOptions = [
   { value: 60, label: '1h' },
   { value: 90, label: '1h 30min' },
   { value: 120, label: '2h' },
-  { value: 180, label: '3h' },
-  { value: 240, label: '4h' },
 ]
+
+const showCustomInput = ref(false)
+const customMinutes = ref(60)
+
+function selectPresetDuration(value) {
+  localDuration.value = value
+  showCustomInput.value = false
+}
+
+function toggleCustomInput() {
+  showCustomInput.value = !showCustomInput.value
+  if (showCustomInput.value) {
+    customMinutes.value = localDuration.value
+  }
+}
+
+function onCustomInput() {
+  if (customMinutes.value >= 1) {
+    localDuration.value = customMinutes.value
+  }
+}
 
 const intensityOptions = [
   { value: 'Baixa', key: 'low', icon: 'battery_1_bar' },
@@ -286,7 +355,8 @@ function applyChanges() {
   })
   uiStore.closeEditPanel()
 
-  if (localIntensity.value === 'Alta' || localDuration.value >= 240) {
+  const isDayPast = sessionSnapshot.day < todayDayIndex.value
+  if (!isDayPast && (localIntensity.value === 'Alta' || localDuration.value >= 240)) {
     uiStore.addNotification({
       type: 'warning',
       icon: 'warning',
@@ -322,7 +392,7 @@ function deleteSession() {
   position: fixed;
   top: 0;
   right: 0;
-  width: 380px;
+  width: 440px;
   height: 100vh;
   background: var(--surface);
   border-left: 1px solid var(--border);
@@ -370,6 +440,34 @@ function deleteSession() {
 
 /* Duration picker */
 .duration-picker { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* Custom duration input */
+.custom-dur-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+.custom-dur-input {
+  width: 72px;
+  padding: 7px 8px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--accent);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--surface);
+  outline: none;
+  text-align: center;
+  -moz-appearance: textfield;
+}
+.custom-dur-input::-webkit-outer-spin-button,
+.custom-dur-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+.custom-dur-unit {
+  font-size: 12px;
+  color: var(--text-3);
+}
 .dur-opt {
   padding: 7px 12px;
   border-radius: var(--radius-sm);
@@ -492,7 +590,21 @@ function deleteSession() {
   gap: 8px;
 }
 .time-display__icon { font-size: 16px; color: var(--accent); }
-.time-display__value { font-family: var(--font-display); font-size: 22px; font-weight: 700; color: var(--text); letter-spacing: 1px; }
+.time-display__input {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 1px;
+  background: transparent;
+  border: none;
+  outline: none;
+  width: 80px;
+  cursor: text;
+  border-bottom: 2px solid var(--border-2);
+  transition: border-color var(--dur-fast);
+}
+.time-display__input:focus { border-bottom-color: var(--accent); }
 
 .time-slider-wrap { position: relative; padding-bottom: 20px; }
 .time-slider {

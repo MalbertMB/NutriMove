@@ -65,11 +65,32 @@
                 v-for="d in DURATIONS"
                 :key="d"
                 class="dur-chip"
-                :class="{ 'dur-chip--active': selectedDuration === d }"
-                @click="selectedDuration = d"
+                :class="{ 'dur-chip--active': selectedDuration === d && !showCustomInput }"
+                @click="selectPresetDuration(d)"
               >
                 {{ formatDuration(d) }}
               </button>
+              <button
+                class="dur-chip"
+                :class="{ 'dur-chip--active': showCustomInput }"
+                @click="toggleCustomInput"
+              >
+                Personalitzat
+              </button>
+            </div>
+            <div v-if="showCustomInput" class="custom-dur-wrap">
+              <input
+                type="number"
+                class="custom-dur-input"
+                v-model.number="customMinutes"
+                min="1"
+                max="600"
+                step="5"
+                placeholder="60"
+                aria-label="Durada en minuts"
+                @input="onCustomInput"
+              />
+              <span class="custom-dur-unit">min</span>
             </div>
           </div>
 
@@ -131,7 +152,7 @@ import { useWeekStore } from '@/stores/weekStore'
 const uiStore = useUIStore()
 const weekStore = useWeekStore()
 
-const DURATIONS = [30, 45, 60, 90, 120, 180]
+const DURATIONS = [30, 60, 90, 120]
 const INTENSITIES = [
   { value: 'Baixa',   label: 'Baixa',   icon: 'speed' },
   { value: 'Moderada', label: 'Moderada', icon: 'speed' },
@@ -143,6 +164,8 @@ const selectedTime = ref(8)
 const selectedType = ref('cycling')
 const selectedDuration = ref(60)
 const selectedIntensity = ref('Moderada')
+const showCustomInput = ref(false)
+const customMinutes = ref(60)
 
 watch(() => uiStore.addPanelContext, (ctx) => {
   if (ctx) {
@@ -161,6 +184,24 @@ const estimatedKcal = computed(() => {
     : selectedIntensity.value === 'Baixa' ? 280 : 400
   return Math.round((selectedDuration.value / 60) * multiplier)
 })
+
+function selectPresetDuration(d) {
+  selectedDuration.value = d
+  showCustomInput.value = false
+}
+
+function toggleCustomInput() {
+  showCustomInput.value = !showCustomInput.value
+  if (showCustomInput.value) {
+    customMinutes.value = selectedDuration.value
+  }
+}
+
+function onCustomInput() {
+  if (customMinutes.value >= 1) {
+    selectedDuration.value = customMinutes.value
+  }
+}
 
 function formatHour(h) {
   const hours = Math.floor(h)
@@ -381,6 +422,33 @@ function handleAdd() {
   background: var(--accent);
   border-color: var(--accent);
   color: var(--navy);
+}
+
+/* Custom duration input */
+.custom-dur-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.custom-dur-input {
+  width: 72px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--accent);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--surface);
+  outline: none;
+  text-align: center;
+  -moz-appearance: textfield;
+}
+.custom-dur-input::-webkit-outer-spin-button,
+.custom-dur-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+.custom-dur-unit {
+  font-size: 12px;
+  color: var(--text-3);
 }
 
 /* Intensity */

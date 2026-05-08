@@ -22,26 +22,11 @@
         Desa la setmana
       </button>
 
-      <!-- Notifications bell -->
-      <button
-        class="icon-btn"
-        :class="{ 'icon-btn--active': uiStore.notifPanelOpen }"
-        :aria-label="`Notificacions${uiStore.unreadCount > 0 ? `, ${uiStore.unreadCount} sense llegir` : ''}`"
-        :aria-expanded="uiStore.notifPanelOpen"
-        @click="uiStore.toggleNotifPanel()"
-      >
-        <span class="material-symbols-rounded">{{ uiStore.notifPanelOpen ? 'notifications' : 'notifications' }}</span>
-        <span v-if="uiStore.unreadCount > 0" class="notif-badge" aria-hidden="true">{{ uiStore.unreadCount }}</span>
-      </button>
     </div>
   </header>
 </template>
 
 <script setup>
-import { useUIStore } from '@/stores/uiStore'
-
-const uiStore = useUIStore()
-
 defineProps({
   title: { type: String, required: true },
   subtitle: { type: String, default: '' },
@@ -87,24 +72,35 @@ defineEmits(['prevWeek', 'nextWeek', 'save'])
 .week-nav {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
   background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  padding: 4px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 5px 6px;
+  box-shadow: var(--shadow-sm);
 }
 .week-nav__btn {
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius-sm);
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--text-2);
   transition: all var(--dur-fast);
+  flex-shrink: 0;
 }
-.week-nav__btn:hover { background: var(--surface-3); color: var(--text); }
-.week-nav__label { font-size: 13px; font-weight: 500; color: var(--text); padding: 0 8px; white-space: nowrap; }
+.week-nav__btn:hover { background: var(--accent-light); color: var(--accent); }
+.week-nav__btn .material-symbols-rounded { font-size: 20px; }
+.week-nav__label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  padding: 0 14px;
+  white-space: nowrap;
+  min-width: 180px;
+  text-align: center;
+}
 
 /* Buttons */
 .btn {
@@ -128,30 +124,4 @@ defineEmits(['prevWeek', 'nextWeek', 'save'])
 .btn--sm { padding: 7px 14px; font-size: 13px; }
 .btn .material-symbols-rounded { font-size: 16px; }
 
-/* Icon button */
-.icon-btn {
-  width: 38px;
-  height: 38px;
-  border-radius: var(--radius-md);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-2);
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  transition: all var(--dur-fast);
-  position: relative;
-}
-.icon-btn:hover { background: var(--surface-3); color: var(--text); }
-.icon-btn--active { background: var(--accent-light); color: var(--accent); border-color: var(--accent); }
-.notif-badge {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 8px;
-  height: 8px;
-  background: var(--warning);
-  border-radius: 50%;
-  border: 2px solid var(--surface);
-}
 </style>

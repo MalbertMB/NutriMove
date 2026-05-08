@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, reactive, computed } from 'vue'
 
 const DAYS = ['Dl', 'Dt', 'Dc', 'Dj', 'Dv', 'Ds', 'Dg']
 const DAYS_FULL = ['Dilluns', 'Dimarts', 'Dimecres', 'Dijous', 'Divendres', 'Dissabte', 'Diumenge']
@@ -47,9 +47,9 @@ function createDefaultMeals() {
         items: ['Llenties pardines 150g', 'Pastanaga', 'Pebrot vermell', 'Pa moreno'] },
       snack:     { label: 'Berenar',  kcal: 190, carbs: 24, protein: 5, fat: 7,
         items: ['Poma Golden', 'Ametlles 20g'] },
-      dinner:    { label: 'Sopar',    kcal: 710, carbs: 62, protein: 48, fat: 18,
-        items: ['Pollastre al forn 200g', 'Batata 150g', 'Mongetes verdes', 'All i pebre'] },
-      total: 2000, targetKcal: 2150, status: 'warning',
+      dinner:    { label: 'Sopar',    kcal: 860, carbs: 80, protein: 52, fat: 20,
+        items: ['Pollastre al forn 200g', 'Batata 220g', 'Mongetes verdes', 'Pa moreno', 'All i pebre'] },
+      total: 2150, targetKcal: 2150, status: 'ok',
     },
     // Dimecres — força upper body 75 min
     {
@@ -85,7 +85,7 @@ function createDefaultMeals() {
         items: ['Dàtils 60g', 'Ametlles 25g', 'Plàtan gran'] },
       dinner:    { label: 'Sopar',    kcal: 800, carbs: 78, protein: 52, fat: 20,
         items: ['Truita de tonyina x3 ous', 'Arròs integral 120g', 'Amanida Niçoise'] },
-      total: 2620, targetKcal: 2750, status: 'warning',
+      total: 2620, targetKcal: 2750, status: 'ok',
     },
     // Dissabte — ciclisme 2h
     {
@@ -121,7 +121,7 @@ export const useWeekStore = defineStore('week', () => {
 
   const days = DAYS
   const daysFull = DAYS_FULL
-  const sessionTypes = SESSION_TYPES
+  const sessionTypes = reactive({ ...SESSION_TYPES })
 
   // Get sessions for a specific day
   const sessionsByDay = computed(() => {
@@ -133,9 +133,15 @@ export const useWeekStore = defineStore('week', () => {
     return map
   })
 
+  function addSessionType(key, label, icon, color, kcalPerHour) {
+    sessionTypes[key] = { label, icon, color, kcalPerHour }
+  }
+
   function addSession(dayIndex, type, duration = 60, intensity = 'Moderada', startTime = 8) {
-    const typeData = SESSION_TYPES[type]
-    const kcal = Math.round((duration / 60) * (intensity === 'Alta' ? 560 : intensity === 'Baixa' ? 280 : 400))
+    const typeData = sessionTypes[type]
+    const baseRate = typeData?.kcalPerHour ?? (intensity === 'Alta' ? 560 : intensity === 'Baixa' ? 280 : 400)
+    const intensityMod = intensity === 'Alta' ? 1.25 : intensity === 'Baixa' ? 0.75 : 1
+    const kcal = Math.round((duration / 60) * baseRate * intensityMod)
     const newSession = {
       id: nextId.value++,
       day: dayIndex,
@@ -250,7 +256,7 @@ export const useWeekStore = defineStore('week', () => {
   return {
     sessions, meals, days, daysFull, sessionTypes,
     sessionsByDay,
-    addSession, updateSession, removeSession,
+    addSessionType, addSession, updateSession, removeSession,
     addFoodToSlot,
     applyAIMealAdjustment, applyAIWeekAdjustment, applyMealAdjustment,
     getSessionById, getWeekTotals
