@@ -130,6 +130,23 @@
             </div>
           </div>
 
+          <!-- Scope -->
+          <div class="add-panel__section">
+            <label class="field-label">Aplicar a</label>
+            <div class="scope-row">
+              <button
+                v-for="s in SCOPES"
+                :key="s.value"
+                class="scope-chip"
+                :class="{ 'scope-chip--active': selectedScope === s.value }"
+                @click="selectedScope = s.value"
+              >
+                <span class="material-symbols-rounded scope-chip__icon">{{ s.icon }}</span>
+                {{ s.label }}
+              </button>
+            </div>
+          </div>
+
           <!-- Footer -->
           <div class="add-panel__footer">
             <button class="btn btn--ghost" @click="uiStore.closeAddPanel()">Cancel·lar</button>
@@ -154,9 +171,14 @@ const weekStore = useWeekStore()
 
 const DURATIONS = [30, 60, 90, 120]
 const INTENSITIES = [
-  { value: 'Baixa',   label: 'Baixa',   icon: 'speed' },
+  { value: 'Baixa',    label: 'Baixa',    icon: 'speed' },
   { value: 'Moderada', label: 'Moderada', icon: 'speed' },
-  { value: 'Alta',    label: 'Alta',    icon: 'bolt' },
+  { value: 'Alta',     label: 'Alta',     icon: 'bolt' },
+]
+const SCOPES = [
+  { value: 'week',   label: 'Aquesta setmana', icon: 'calendar_today' },
+  { value: 'month',  label: 'Tot el mes',      icon: 'calendar_month' },
+  { value: 'always', label: 'Sempre',          icon: 'all_inclusive'  },
 ]
 
 const selectedDay = ref(0)
@@ -164,6 +186,7 @@ const selectedTime = ref(8)
 const selectedType = ref('cycling')
 const selectedDuration = ref(60)
 const selectedIntensity = ref('Moderada')
+const selectedScope = ref('always')
 const showCustomInput = ref(false)
 const customMinutes = ref(60)
 
@@ -172,6 +195,10 @@ watch(() => uiStore.addPanelContext, (ctx) => {
     selectedDay.value = ctx.dayIndex
     selectedTime.value = ctx.startTime
   }
+})
+
+watch(() => uiStore.addPanelOpen, (open) => {
+  if (!open) selectedScope.value = 'always'
 })
 
 const activeTypeData = computed(() => weekStore.sessionTypes[selectedType.value])
@@ -217,18 +244,16 @@ function formatDuration(mins) {
 }
 
 function handleAdd() {
-  const session = weekStore.addSession(
+  weekStore.addSession(
     selectedDay.value,
     selectedType.value,
     selectedDuration.value,
     selectedIntensity.value,
-    selectedTime.value
+    selectedTime.value,
+    selectedScope.value
   )
   uiStore.showToast(`Sessió "${activeTypeLabel.value}" afegida el ${weekStore.daysFull[selectedDay.value]}.`, 'success')
   uiStore.closeAddPanel()
-  if (selectedIntensity.value === 'Alta') {
-    setTimeout(() => uiStore.openEditPanel(session.id), 300)
-  }
 }
 </script>
 
@@ -536,6 +561,37 @@ function handleAdd() {
 }
 .btn--primary:hover { background: var(--accent-dark); transform: translateY(-1px); box-shadow: var(--shadow-md); }
 .btn .material-symbols-rounded { font-size: 16px; }
+
+/* Scope selector */
+.scope-row {
+  display: flex;
+  gap: 6px;
+}
+.scope-chip {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 6px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--border);
+  background: var(--surface-2);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-2);
+  cursor: pointer;
+  transition: all var(--dur-fast);
+  line-height: 1.2;
+  text-align: center;
+}
+.scope-chip__icon { font-size: 18px; }
+.scope-chip:hover { border-color: var(--accent); color: var(--accent); }
+.scope-chip--active {
+  border-color: var(--accent);
+  background: var(--accent-light);
+  color: var(--accent-dark);
+}
 
 /* Transition */
 .panel-slide-enter-active, .panel-slide-leave-active { transition: all 0.25s var(--ease); }

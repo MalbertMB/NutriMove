@@ -124,6 +124,23 @@
           <p id="intensity-hint" class="field__hint">Selecciona la percepció de càrrega de la sessió.</p>
         </div>
 
+        <!-- Scope -->
+        <div class="field">
+          <label class="field__label">Aplicar a</label>
+          <div class="scope-row">
+            <button
+              v-for="s in SCOPES"
+              :key="s.value"
+              class="scope-chip"
+              :class="{ 'scope-chip--active': localScope === s.value }"
+              @click="localScope = s.value"
+            >
+              <span class="material-symbols-rounded scope-chip__icon">{{ s.icon }}</span>
+              {{ s.label }}
+            </button>
+          </div>
+        </div>
+
         <!-- Notes -->
         <div class="field">
           <label class="field__label" for="notes">Notes (opcional)</label>
@@ -209,10 +226,18 @@ const localDuration = ref(60)
 const localIntensity = ref('Moderada')
 const localNotes = ref('')
 const localStartTime = ref(8)
+const localScope = ref('always')
 
 let snapDuration = 60
 let snapIntensity = 'Moderada'
 let snapStartTime = 8
+let snapScope = 'always'
+
+const SCOPES = [
+  { value: 'week',   label: 'Aquesta setmana', icon: 'calendar_today' },
+  { value: 'month',  label: 'Tot el mes',      icon: 'calendar_month' },
+  { value: 'always', label: 'Sempre',          icon: 'all_inclusive'  },
+]
 
 watch(() => uiStore.editPanelOpen, async (open) => {
   if (open) {
@@ -223,9 +248,11 @@ watch(() => uiStore.editPanelOpen, async (open) => {
       localIntensity.value = s.intensity
       localNotes.value = s.notes || ''
       localStartTime.value = s.startTime ?? 8
+      localScope.value = s.scope ?? 'always'
       snapDuration = s.duration
       snapIntensity = s.intensity
       snapStartTime = s.startTime ?? 8
+      snapScope = s.scope ?? 'always'
       const isPreset = durationOptions.some(o => o.value === s.duration)
       showCustomInput.value = !isPreset
       customMinutes.value = s.duration
@@ -278,10 +305,14 @@ const todayDayIndex = computed(() => {
 
 function cancelAndClose() {
   if (session.value) {
-    weekStore.updateSession(session.value.id, { startTime: snapStartTime })
+    const currentStart = session.value.startTime ?? 8
+    if (currentStart !== snapStartTime) {
+      weekStore.updateSession(session.value.id, { startTime: snapStartTime })
+    }
     localStartTime.value = snapStartTime
     localDuration.value = snapDuration
     localIntensity.value = snapIntensity
+    localScope.value = snapScope
   }
   uiStore.closeEditPanel()
 }
@@ -290,7 +321,8 @@ const hasChanges = computed(() => {
   if (!session.value) return false
   return localDuration.value !== snapDuration ||
     localIntensity.value !== snapIntensity ||
-    localStartTime.value !== snapStartTime
+    localStartTime.value !== snapStartTime ||
+    localScope.value !== snapScope
 })
 
 const durationOptions = [
@@ -351,12 +383,13 @@ function applyChanges() {
     duration: localDuration.value,
     intensity: localIntensity.value,
     notes: localNotes.value,
-    startTime: localStartTime.value
+    startTime: localStartTime.value,
+    scope: localScope.value,
   })
   uiStore.closeEditPanel()
 
-  const isDayPast = sessionSnapshot.day < todayDayIndex.value
-  if (!isDayPast && (localIntensity.value === 'Alta' || localDuration.value >= 240)) {
+  const dayIsPast = weekStore.isDayPast(sessionSnapshot.day)
+  if (!dayIsPast && (localIntensity.value === 'Alta' || localDuration.value >= 240)) {
     uiStore.addNotification({
       type: 'warning',
       icon: 'warning',
@@ -644,6 +677,37 @@ function deleteSession() {
   font-size: 10px;
   color: var(--text-3);
   white-space: nowrap;
+}
+
+/* Scope selector */
+.scope-row {
+  display: flex;
+  gap: 6px;
+}
+.scope-chip {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 6px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-2);
+  cursor: pointer;
+  transition: all var(--dur-fast);
+  line-height: 1.2;
+  text-align: center;
+}
+.scope-chip__icon { font-size: 18px; }
+.scope-chip:hover { border-color: var(--accent); color: var(--accent); }
+.scope-chip--active {
+  border-color: var(--accent);
+  background: var(--accent-light);
+  color: var(--accent-dark);
 }
 
 /* Transition */

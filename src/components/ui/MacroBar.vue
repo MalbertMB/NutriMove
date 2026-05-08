@@ -29,10 +29,13 @@
           ></div>
         </div>
 
-        <!-- Min tick (outside overflow:hidden, extends above/below track) -->
-        <div class="tick tick--min" :style="{ left: macro.minPct + '%' }"></div>
-        <!-- Target tick -->
-        <div class="tick tick--target" :style="{ left: macro.targetPct + '%' }"></div>
+        <!-- Range edge ticks (equal styling on both sides) -->
+        <div class="tick tick--edge" :style="{ left: macro.minPct + '%' }" aria-hidden="true"></div>
+        <div class="tick tick--edge" :style="{ left: macro.targetPct + '%' }" aria-hidden="true"></div>
+        <!-- Current value indicator -->
+        <div class="tick tick--current" :style="{ left: macro.valuePct + '%' }" aria-hidden="true">
+          <div class="tick__dot"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -118,7 +121,7 @@ const macros = computed(() =>
 .macro-row__zone {
   position: absolute;
   top: 0; bottom: 0;
-  opacity: 0.18;
+  opacity: 0.22;
   pointer-events: none;
 }
 
@@ -142,6 +145,26 @@ const macros = computed(() =>
   z-index: 3;
   pointer-events: none;
 }
-.tick--min    { background: var(--text-3); opacity: 0.45; }
-.tick--target { background: var(--text-2); opacity: 0.75; }
+/* Optimal zone edges (min and target) — same styling for visual symmetry */
+.tick--edge { background: var(--text-2); opacity: 0.75; }
+/* Current value indicator — most prominent */
+.tick--current {
+  background: var(--text);
+  opacity: 1;
+  width: 3px;
+  top: -3px;
+  bottom: -3px;
+  z-index: 4;
+  transition: left 0.6s var(--ease);
+}
+.tick__dot {
+  position: absolute;
+  top: -3px;
+  left: 50%;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--text);
+  transform: translateX(-50%);
+  box-shadow: 0 0 0 2px var(--surface);
+}
 </style>

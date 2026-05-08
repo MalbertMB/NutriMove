@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, watch } from 'vue'
 
 const DAYS = ['Dl', 'Dt', 'Dc', 'Dj', 'Dv', 'Ds', 'Dg']
 const DAYS_FULL = ['Dilluns', 'Dimarts', 'Dimecres', 'Dijous', 'Divendres', 'Dissabte', 'Diumenge']
@@ -13,12 +13,22 @@ const SESSION_TYPES = {
   double: { label: 'Sessió doble', icon: 'repeat', color: '#EF4444' }
 }
 
+function getMonthKey(weekOffsetValue) {
+  const today = new Date()
+  const dow = today.getDay()
+  const mondayDiff = dow === 0 ? -6 : 1 - dow
+  const monday = new Date(today)
+  monday.setDate(today.getDate() + mondayDiff + weekOffsetValue * 7)
+  return `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}`
+}
+
 function createDefaultSessions() {
+  const mk = getMonthKey(0)
   return [
-    { id: 1, day: 0, type: 'swimming', duration: 60,  intensity: 'Moderada', label: 'Natació matinal',    kcal: 420, load: 'normal', startTime: 7   },
-    { id: 2, day: 2, type: 'strength', duration: 75,  intensity: 'Alta',     label: 'Força — upper body', kcal: 380, load: 'normal', startTime: 18  },
-    { id: 3, day: 4, type: 'cycling',  duration: 120, intensity: 'Moderada', label: 'Ruta de bici',       kcal: 680, load: 'normal', startTime: 9   },
-    { id: 4, day: 5, type: 'cycling',  duration: 120, intensity: 'Moderada', label: 'Ruta dissabte',      kcal: 680, load: 'normal', startTime: 8   },
+    { id: 1, day: 0, type: 'swimming', duration: 60,  intensity: 'Moderada', label: 'Natació matinal',    kcal: 420, load: 'normal', startTime: 7,  scope: 'always', originWeekOffset: 0, originMonthKey: mk },
+    { id: 2, day: 2, type: 'strength', duration: 75,  intensity: 'Alta',     label: 'Força — upper body', kcal: 380, load: 'normal', startTime: 18, scope: 'always', originWeekOffset: 0, originMonthKey: mk },
+    { id: 3, day: 4, type: 'cycling',  duration: 120, intensity: 'Moderada', label: 'Ruta de bici',       kcal: 680, load: 'normal', startTime: 9,  scope: 'always', originWeekOffset: 0, originMonthKey: mk },
+    { id: 4, day: 5, type: 'cycling',  duration: 120, intensity: 'Moderada', label: 'Ruta dissabte',      kcal: 680, load: 'normal', startTime: 8,  scope: 'always', originWeekOffset: 0, originMonthKey: mk },
   ]
 }
 
@@ -116,18 +126,64 @@ function createDefaultMeals() {
 
 export const useWeekStore = defineStore('week', () => {
   const sessions = ref(createDefaultSessions())
-  const meals = ref(createDefaultMeals())
+  const weekOffset = ref(0)
+  const mealsPerWeek = ref({ '0': createDefaultMeals() })
   const nextId = ref(10)
+
+  function getMealsForWeek(offset) {
+    const key = String(offset)
+    if (!mealsPerWeek.value[key]) {
+      mealsPerWeek.value[key] = createDefaultMeals()
+    }
+    return mealsPerWeek.value[key]
+  }
+
+  const meals = computed(() => getMealsForWeek(weekOffset.value))
+
+  const currentWeekLabel = computed(() => {
+    const today = new Date()
+    const dow = today.getDay()
+    const mondayDiff = dow === 0 ? -6 : 1 - dow
+    const monday = new Date(today)
+    monday.setDate(today.getDate() + mondayDiff + weekOffset.value * 7)
+    const sunday = new Date(monday)
+    sunday.setDate(monday.getDate() + 6)
+    const months = ['gen', 'feb', 'març', 'abr', 'maig', 'juny', 'jul', 'ag', 'set', 'oct', 'nov', 'des']
+    const mStr = `${monday.getDate()} ${months[monday.getMonth()]}`
+    const sDay = sunday.getDate()
+    const sSuffix = sunday.getMonth() !== monday.getMonth() ? ` ${months[sunday.getMonth()]}` : ''
+    return `${mStr}–${sDay}${sSuffix} ${sunday.getFullYear()}`
+  })
+
+  function prevWeek() { weekOffset.value-- }
+  function nextWeek() { weekOffset.value++ }
+
+  function isDayPast(dayIndex, offset = weekOffset.value) {
+    if (offset < 0) return true
+    if (offset > 0) return false
+    const dow = new Date().getDay()
+    const todayIdx = dow === 0 ? 6 : dow - 1
+    return dayIndex < todayIdx
+  }
 
   const days = DAYS
   const daysFull = DAYS_FULL
   const sessionTypes = reactive({ ...SESSION_TYPES })
 
-  // Get sessions for a specific day
+  function isSessionInWeek(session, offset) {
+    if (session.scope === 'week')  return session.originWeekOffset === offset
+    if (session.scope === 'month') return session.originMonthKey === getMonthKey(offset)
+    return true // 'always'
+  }
+
+  const currentWeekSessions = computed(() =>
+    sessions.value.filter(s => isSessionInWeek(s, weekOffset.value))
+  )
+
   const sessionsByDay = computed(() => {
     const map = {}
     days.forEach((_, i) => { map[i] = [] })
-    sessions.value.forEach(s => {
+    currentWeekSessions.value.forEach(s => {
       if (map[s.day] !== undefined) map[s.day].push(s)
     })
     return map
@@ -137,7 +193,7 @@ export const useWeekStore = defineStore('week', () => {
     sessionTypes[key] = { label, icon, color, kcalPerHour }
   }
 
-  function addSession(dayIndex, type, duration = 60, intensity = 'Moderada', startTime = 8) {
+  function addSession(dayIndex, type, duration = 60, intensity = 'Moderada', startTime = 8, scope = 'always') {
     const typeData = sessionTypes[type]
     const baseRate = typeData?.kcalPerHour ?? (intensity === 'Alta' ? 560 : intensity === 'Baixa' ? 280 : 400)
     const intensityMod = intensity === 'Alta' ? 1.25 : intensity === 'Baixa' ? 0.75 : 1
@@ -151,7 +207,10 @@ export const useWeekStore = defineStore('week', () => {
       label: typeData.label,
       kcal,
       load: intensity === 'Alta' || duration >= 240 ? 'high' : 'normal',
-      startTime
+      startTime,
+      scope,
+      originWeekOffset: weekOffset.value,
+      originMonthKey: getMonthKey(weekOffset.value),
     }
     sessions.value.push(newSession)
     checkLoadAndUpdateMeals(dayIndex)
@@ -162,8 +221,11 @@ export const useWeekStore = defineStore('week', () => {
     const idx = sessions.value.findIndex(s => s.id === id)
     if (idx === -1) return
     const session = sessions.value[idx]
+    if (changes.scope && changes.scope !== session.scope) {
+      changes.originWeekOffset = weekOffset.value
+      changes.originMonthKey = getMonthKey(weekOffset.value)
+    }
     Object.assign(session, changes)
-    // Recalculate kcal
     session.kcal = Math.round((session.duration / 60) * (session.intensity === 'Alta' ? 560 : session.intensity === 'Baixa' ? 280 : 400))
     session.load = session.intensity === 'Alta' || session.duration >= 240 ? 'high' : 'normal'
     checkLoadAndUpdateMeals(session.day)
@@ -179,37 +241,63 @@ export const useWeekStore = defineStore('week', () => {
   }
 
   function checkLoadAndUpdateMeals(dayIndex) {
+    const meal = getMealsForWeek(weekOffset.value)[dayIndex]
     const daySessions = sessionsByDay.value[dayIndex] || []
     const sessionKcal = daySessions.reduce((sum, s) => sum + s.kcal, 0)
     const isHighLoad = daySessions.some(s => s.load === 'high') || sessionKcal > 800
-
-    const meal = meals.value[dayIndex]
     const base = DAY_BASE_TARGETS[dayIndex] ?? 2200
-    if (isHighLoad) {
-      meal.targetKcal = Math.round(base * 1.12)
-      meal.status = meal.total >= meal.targetKcal * 0.95 ? 'ok' : 'warning'
-    } else {
-      meal.targetKcal = base
-      meal.status = meal.total >= base * 0.95 ? 'ok' : 'warning'
+    const newTarget = isHighLoad ? Math.round(base * 1.12) : base
+
+    // User has approved nutrition for this day via IA — keep status, just refresh target.
+    if (meal.aiAdjusted) {
+      meal.targetKcal = newTarget
+      return
     }
+    // Past days: nutrition can no longer be adjusted, so don't raise warnings.
+    if (isDayPast(dayIndex)) {
+      meal.targetKcal = newTarget
+      meal.status = 'ok'
+      return
+    }
+    meal.targetKcal = newTarget
+    meal.status = meal.total >= newTarget * 0.95 ? 'ok' : 'warning'
   }
 
+  // Resync meal targets/status whenever the active week changes so each
+  // week's nutrition reflects the sessions actually visible in that week.
+  watch(weekOffset, () => {
+    const weekMeals = getMealsForWeek(weekOffset.value)
+    for (let d = 0; d < 7; d++) {
+      if (!weekMeals[d].aiAdjusted) checkLoadAndUpdateMeals(d)
+    }
+  })
+
   function applyAIMealAdjustment(dayIndex, extraKcal = 300) {
-    const meal = meals.value[dayIndex]
+    const meal = getMealsForWeek(weekOffset.value)[dayIndex]
+    const item = 'Hidrats extra (arròs o pasta)'
     meal.dinner.kcal += extraKcal
     meal.dinner.carbs += 60
-    meal.dinner.items = [...meal.dinner.items, 'Hidrats extra (arròs o pasta)']
+    meal.dinner.items = [...meal.dinner.items, item]
+    meal.dinner.aiAdjustments = [
+      ...(meal.dinner.aiAdjustments || []),
+      { item, kcal: extraKcal, carbs: 60, protein: 0, phase: 'recovery' },
+    ]
     meal.total = meal.breakfast.kcal + meal.lunch.kcal + meal.snack.kcal + meal.dinner.kcal
     meal.status = 'ok'
     meal.aiAdjusted = true
   }
 
   function applyAIWeekAdjustment(startDay, endDay) {
+    const weekMeals = getMealsForWeek(weekOffset.value)
     for (let d = startDay; d <= endDay; d++) {
-      const meal = meals.value[d]
+      const meal = weekMeals[d]
       meal.targetKcal = Math.round(meal.total * 1.15)
       meal.lunch.kcal += 150
       meal.lunch.carbs += 30
+      meal.lunch.aiAdjustments = [
+        ...(meal.lunch.aiAdjustments || []),
+        { item: 'Reforç IA', kcal: 150, carbs: 30, protein: 0, phase: 'training' },
+      ]
       meal.total += 150
       meal.status = 'ok'
       meal.aiAdjusted = true
@@ -217,7 +305,7 @@ export const useWeekStore = defineStore('week', () => {
   }
 
   function addFoodToSlot(dayIndex, slot, { name, kcal = 0, carbs = 0, protein = 0, fat = 0 } = {}) {
-    const meal = meals.value[dayIndex]
+    const meal = getMealsForWeek(weekOffset.value)[dayIndex]
     if (!meal || !meal[slot]) return
     const s = meal[slot]
     s.kcal += kcal
@@ -229,14 +317,18 @@ export const useWeekStore = defineStore('week', () => {
     checkLoadAndUpdateMeals(dayIndex)
   }
 
-  function applyMealAdjustment(dayIndex, { mealSlot = 'dinner', extraKcal = 0, extraCarbs = 0, extraProtein = 0, item = null } = {}) {
-    const meal = meals.value[dayIndex]
+  function applyMealAdjustment(dayIndex, { mealSlot = 'dinner', extraKcal = 0, extraCarbs = 0, extraProtein = 0, item = null, phase = null } = {}) {
+    const meal = getMealsForWeek(weekOffset.value)[dayIndex]
     if (!meal || !meal[mealSlot]) return
     const slot = meal[mealSlot]
     slot.kcal += extraKcal
     slot.carbs += extraCarbs
     slot.protein += extraProtein
     if (item) slot.items = [...slot.items, item]
+    slot.aiAdjustments = [
+      ...(slot.aiAdjustments || []),
+      { item, kcal: extraKcal, carbs: extraCarbs, protein: extraProtein, phase },
+    ]
     meal.total = meal.breakfast.kcal + meal.lunch.kcal + meal.snack.kcal + meal.dinner.kcal
     meal.status = 'ok'
     meal.aiAdjusted = true
@@ -247,15 +339,21 @@ export const useWeekStore = defineStore('week', () => {
   }
 
   function getWeekTotals() {
-    const totalSessions = sessions.value.length
-    const totalKcalBurned = sessions.value.reduce((s, sess) => s + sess.kcal, 0)
-    const highLoadDays = [...new Set(sessions.value.filter(s => s.load === 'high').map(s => s.day))].length
+    const ws = currentWeekSessions.value
+    const wm = getMealsForWeek(weekOffset.value)
+    const totalSessions = ws.length
+    const totalKcalBurned = ws.reduce((s, sess) => s + sess.kcal, 0)
+    const highLoadDays = [...new Set(
+      ws.filter(s => s.load === 'high' && !wm[s.day]?.aiAdjusted && !isDayPast(s.day))
+        .map(s => s.day)
+    )].length
     return { totalSessions, totalKcalBurned, highLoadDays }
   }
 
   return {
     sessions, meals, days, daysFull, sessionTypes,
-    sessionsByDay,
+    weekOffset, currentWeekLabel, prevWeek, nextWeek, isDayPast,
+    currentWeekSessions, sessionsByDay,
     addSessionType, addSession, updateSession, removeSession,
     addFoodToSlot,
     applyAIMealAdjustment, applyAIWeekAdjustment, applyMealAdjustment,

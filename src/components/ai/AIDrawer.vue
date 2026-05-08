@@ -199,7 +199,8 @@ function applyPartial() {
       extraKcal: adj.extraKcal,
       extraCarbs: adj.extraCarbs,
       extraProtein: adj.extraProtein,
-      item: adj.item
+      item: adj.item,
+      phase: adj.phase,
     })
   }
   uiStore.closeAIDrawer()
@@ -214,7 +215,8 @@ function applyAll() {
       extraKcal: adj.extraKcal,
       extraCarbs: adj.extraCarbs,
       extraProtein: adj.extraProtein,
-      item: adj.item
+      item: adj.item,
+      phase: adj.phase,
     })
   }
   uiStore.closeAIDrawer()
@@ -245,8 +247,10 @@ function applyAll() {
   background: var(--surface);
   border-radius: var(--radius-xl) var(--radius-xl) 0 0;
   box-shadow: var(--shadow-xl);
-  max-height: 70vh;
-  overflow-y: auto;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   animation: drawerIn 0.45s var(--ease) both;
 }
 
@@ -255,6 +259,7 @@ function applyAll() {
   justify-content: center;
   padding: 12px;
   cursor: pointer;
+  flex-shrink: 0;
 }
 .handle-bar {
   width: 40px; height: 4px;
@@ -269,6 +274,7 @@ function applyAll() {
   justify-content: space-between;
   padding: 0 24px 20px;
   gap: 12px;
+  flex-shrink: 0;
 }
 .drawer__header-left { display: flex; align-items: center; gap: 14px; }
 .ai-icon {
@@ -294,7 +300,7 @@ function applyAll() {
 }
 .close-btn:hover { background: var(--surface-3); color: var(--text); }
 
-/* Columns */
+/* Columns (scrollable middle area) */
 .drawer__columns {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -303,6 +309,8 @@ function applyAll() {
   margin: 0 24px;
   border-radius: var(--radius-lg);
   overflow: hidden;
+  flex: 1;
+  min-height: 0;
 }
 
 .drawer-col {
@@ -311,6 +319,8 @@ function applyAll() {
   display: flex;
   flex-direction: column;
   gap: 14px;
+  overflow-y: auto;
+  min-height: 0;
 }
 
 .col-header {
@@ -437,14 +447,16 @@ function applyAll() {
 }
 .preview-item .material-symbols-rounded { font-size: 16px; }
 
-/* Footer */
+/* Footer (always visible) */
 .drawer__footer {
   display: flex;
   gap: 8px;
   justify-content: flex-end;
-  padding: 20px 24px 28px;
+  padding: 16px 24px 24px;
   border-top: 1px solid var(--border);
   margin-top: 20px;
+  flex-shrink: 0;
+  background: var(--surface);
 }
 
 .btn {

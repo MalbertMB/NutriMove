@@ -3,16 +3,14 @@
     <AppTopBar
       title="Sessions"
       subtitle="Gestiona i planifica els teus entrenaments"
-      :show-save="true"
-      @save="uiStore.showToast('Sessions desades.', 'success')"
     />
 
     <div class="sessions-content">
       <!-- Left: week overview by day -->
       <div id="sessions-list" class="sessions-left" tabindex="-1">
         <div class="section-header">
-          <h2 class="section-title">Aquesta setmana</h2>
-          <span class="section-count">{{ weekStore.sessions.length }} sessions</span>
+          <h2 class="section-title">{{ weekStore.currentWeekLabel }}</h2>
+          <span class="section-count">{{ weekStore.currentWeekSessions.length }} sessions</span>
         </div>
 
         <div class="day-list">
@@ -56,7 +54,10 @@
                   <span class="session-row__meta">{{ formatDuration(session.duration) }} · {{ session.intensity }}</span>
                 </div>
                 <div class="session-row__kcal">{{ session.kcal }} kcal</div>
-                <LoadBadge :level="session.load" />
+                <LoadBadge
+                  v-if="session.load === 'high' && !weekStore.meals[i]?.aiAdjusted && !weekStore.isDayPast(i)"
+                  :level="session.load"
+                />
                 <button
                   class="session-row__del"
                   @click.stop="removeSession(session.id)"
@@ -118,7 +119,7 @@
               <div class="type-dist__bar">
                 <div
                   class="type-dist__fill"
-                  :style="{ width: (count / weekStore.sessions.length * 100) + '%' }"
+                  :style="{ width: (count / Math.max(weekStore.currentWeekSessions.length, 1) * 100) + '%' }"
                 ></div>
               </div>
             </div>
@@ -178,13 +179,13 @@ function removeSession(id) {
 const totals = computed(() => weekStore.getWeekTotals())
 
 const totalHours = computed(() => {
-  const mins = weekStore.sessions.reduce((s, sess) => s + sess.duration, 0)
+  const mins = weekStore.currentWeekSessions.reduce((s, sess) => s + sess.duration, 0)
   return (mins / 60).toFixed(1)
 })
 
 const typeDistribution = computed(() => {
   const dist = {}
-  weekStore.sessions.forEach(s => {
+  weekStore.currentWeekSessions.forEach(s => {
     dist[s.type] = (dist[s.type] || 0) + 1
   })
   return dist

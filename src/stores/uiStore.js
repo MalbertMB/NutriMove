@@ -109,6 +109,20 @@ export const useUIStore = defineStore("ui", () => {
 		aiDrawerContext.value = null;
 	}
 
+	// Meal detail panel (click on a meal cell/card)
+	const mealPanelOpen = ref(false);
+	const mealPanelDayIndex = ref(null);
+
+	function openMealPanel(dayIndex) {
+		mealPanelDayIndex.value = dayIndex;
+		mealPanelOpen.value = true;
+	}
+
+	function closeMealPanel() {
+		mealPanelOpen.value = false;
+		mealPanelDayIndex.value = null;
+	}
+
 	// Add session panel (click on calendar)
 	const addPanelOpen = ref(false);
 	const addPanelContext = ref(null); // { dayIndex, startTime }
@@ -209,5 +223,9 @@ export const useUIStore = defineStore("ui", () => {
 		addPanelContext,
 		openAddPanel,
 		closeAddPanel,
+		mealPanelOpen,
+		mealPanelDayIndex,
+		openMealPanel,
+		closeMealPanel,
 	};
 });

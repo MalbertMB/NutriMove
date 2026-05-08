@@ -62,8 +62,8 @@
             </div>
           </div>
 
-          <!-- Load warning -->
-          <div v-if="session.load === 'high'" class="preview-card__warning">
+          <!-- Load warning (skip past days and reviewed days) -->
+          <div v-if="showLoadWarning" class="preview-card__warning">
             <span class="material-symbols-rounded icon-fill">warning</span>
             Càrrega alta — revisa la nutrició d'aquest dia
           </div>
@@ -106,6 +106,12 @@ const typeData = computed(() => {
 })
 
 const dayName = computed(() => session.value ? weekStore.daysFull[session.value.day] : '')
+
+const showLoadWarning = computed(() => {
+  if (!session.value || session.value.load !== 'high') return false
+  if (weekStore.isDayPast(session.value.day)) return false
+  return !weekStore.meals[session.value.day]?.aiAdjusted
+})
 
 const intensityKey = computed(() => {
   const map = { Baixa: 'low', Moderada: 'med', Alta: 'high' }

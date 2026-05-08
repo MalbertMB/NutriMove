@@ -4,9 +4,9 @@
     <AppTopBar
       title="Inici"
       :show-week-nav="true"
-      :week-label="weekLabel"
-      @prev-week="weekOffset--"
-      @next-week="weekOffset++"
+      :week-label="weekStore.currentWeekLabel"
+      @prev-week="weekStore.prevWeek()"
+      @next-week="weekStore.nextWeek()"
     />
 
     <!-- KPI strip -->
@@ -30,21 +30,12 @@
         :delay="60"
       />
       <StatCard
-        icon="warning"
-        label="Dies de càrrega alta"
-        :value="totals.highLoadDays"
-        :meta="totals.highLoadDays > 0 ? 'Reviseu la nutrició' : 'Tot correcte'"
-        icon-bg="rgba(255,122,53,0.1)"
-        icon-color="var(--warning)"
-        :delay="120"
-      />
-      <StatCard
         icon="check_circle"
         label="Nutrició coberta"
         :value="coveredDays"
         unit="/ 7 dies"
         :meta="coveredDays === 7 ? 'Setmana completa ✓' : 'Ajusta els àpats pendents'"
-        :delay="180"
+        :delay="120"
       />
     </div>
 
@@ -76,11 +67,7 @@
 
       <!-- Calendar -->
       <div id="dashboard-calendar" class="dashboard__cal" tabindex="-1">
-        <WeekCalendar
-          :week-offset="weekOffset"
-          @drop-session="handleDropSession"
-        />
-
+        <WeekCalendar @drop-session="handleDropSession" />
       </div>
     </div>
 
@@ -88,13 +75,14 @@
     <SessionPreviewCard />
     <SessionEditPanel />
     <SessionAddPanel />
+    <MealDetailPanel />
     <AIPopover />
     <AIDrawer />
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 import AppTopBar from '@/components/layout/AppTopBar.vue'
 import WeekCalendar from '@/components/dashboard/WeekCalendar.vue'
 import SessionLibrary from '@/components/session/SessionLibrary.vue'
@@ -102,6 +90,7 @@ import StatCard from '@/components/dashboard/StatCard.vue'
 import SessionPreviewCard from '@/components/session/SessionPreviewCard.vue'
 import SessionEditPanel from '@/components/session/SessionEditPanel.vue'
 import SessionAddPanel from '@/components/session/SessionAddPanel.vue'
+import MealDetailPanel from '@/components/meal/MealDetailPanel.vue'
 import AIPopover from '@/components/ai/AIPopover.vue'
 import AIDrawer from '@/components/ai/AIDrawer.vue'
 import { useWeekStore } from '@/stores/weekStore'
@@ -109,19 +98,6 @@ import { useUIStore } from '@/stores/uiStore'
 
 const weekStore = useWeekStore()
 const uiStore = useUIStore()
-
-const weekOffset = ref(0)
-
-const weekLabel = computed(() => {
-  const today = new Date()
-  const startOfWeek = new Date(today)
-  const dayOfWeek = today.getDay() === 0 ? 6 : today.getDay() - 1
-  startOfWeek.setDate(today.getDate() - dayOfWeek + weekOffset.value * 7)
-  const endOfWeek = new Date(startOfWeek)
-  endOfWeek.setDate(startOfWeek.getDate() + 6)
-  const fmt = (d) => d.toLocaleDateString('ca-ES', { day: 'numeric', month: 'short' })
-  return `${fmt(startOfWeek)} – ${fmt(endOfWeek)}`
-})
 
 const totals = computed(() => weekStore.getWeekTotals())
 
@@ -137,8 +113,7 @@ const highLoadDaysList = computed(() => {
 })
 
 function handleDropSession({ dayIndex, type }) {
-  const session = weekStore.addSession(dayIndex, type, 60, 'Moderada')
-  uiStore.openEditPanel(session.id)
+  weekStore.addSession(dayIndex, type, 60, 'Moderada')
   uiStore.showToast(`Sessió "${weekStore.sessionTypes[type].label}" afegida el ${weekStore.daysFull[dayIndex]}.`, 'success')
 }
 
@@ -228,7 +203,7 @@ function openWeekAIDrawer() {
 /* KPI strip */
 .kpi-strip {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 16px;
   padding: 8px 24px 0;
   flex-shrink: 0;

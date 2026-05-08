@@ -79,7 +79,11 @@
             v-for="session in weekStore.sessionsByDay[i]"
             :key="session.id"
             class="session-block"
-            :class="[`session-block--${session.type}`, `session-block--${session.load}`, session.duration <= 75 && 'session-block--inline-layout']"
+            :class="[
+              `session-block--${session.type}`,
+              isUnreviewedHigh(session, i) ? 'session-block--high' : '',
+              session.duration <= 75 && 'session-block--inline-layout',
+            ]"
             :style="{
               '--sess-color': getSessionColor(session.type),
               top: sessionTop(session),
@@ -100,7 +104,7 @@
               <span class="material-symbols-rounded session-block__icon">{{ getSessionIcon(session.type) }}</span>
               <span class="session-block__duration">{{ formatDuration(session.duration) }}</span>
               <span class="session-block__label session-block__label--inline">{{ session.label }}</span>
-              <span v-if="session.load === 'high'" class="session-block__warn" aria-label="Càrrega alta">
+              <span v-if="isUnreviewedHigh(session, i)" class="session-block__warn" aria-label="Càrrega alta">
                 <span class="material-symbols-rounded icon-fill" aria-hidden="true">warning</span>
               </span>
             </div>
@@ -109,7 +113,7 @@
               <div class="session-block__header">
                 <span class="material-symbols-rounded session-block__icon">{{ getSessionIcon(session.type) }}</span>
                 <span class="session-block__duration">{{ formatDuration(session.duration) }}</span>
-                <span v-if="session.load === 'high'" class="session-block__warn" aria-label="Càrrega alta">
+                <span v-if="isUnreviewedHigh(session, i)" class="session-block__warn" aria-label="Càrrega alta">
                   <span class="material-symbols-rounded icon-fill" aria-hidden="true">warning</span>
                 </span>
               </div>
@@ -120,7 +124,7 @@
               <div class="session-block__header">
                 <span class="material-symbols-rounded session-block__icon">{{ getSessionIcon(session.type) }}</span>
                 <span class="session-block__duration">{{ formatDuration(session.duration) }}</span>
-                <span v-if="session.load === 'high'" class="session-block__warn" aria-label="Càrrega alta">
+                <span v-if="isUnreviewedHigh(session, i)" class="session-block__warn" aria-label="Càrrega alta">
                   <span class="material-symbols-rounded icon-fill" aria-hidden="true">warning</span>
                 </span>
               </div>
@@ -148,38 +152,38 @@
           :key="'m-' + i"
           class="cal-cell meal-cell"
           :class="`meal-cell--${meal.status}`"
+          role="button"
+          tabindex="0"
+          :aria-label="`Veure detall àpats: ${weekStore.daysFull[i]}`"
+          @click="uiStore.openMealPanel(i)"
+          @keydown.enter.prevent="uiStore.openMealPanel(i)"
         >
           <div class="meal-cell__kcal">
             <span class="meal-kcal-val">{{ meal.total }}</span>
-            <span class="meal-kcal-target">/ {{ meal.targetKcal }} kcal</span>
+            <span class="meal-kcal-target">kcal</span>
           </div>
 
-          <!-- Macro mini bars -->
-          <div class="meal-mini-bars">
+          <!-- Slot pills (icon + kcal per àpat) -->
+          <div class="meal-cell__slots">
             <div
-              v-for="m in miniMacros(meal)"
-              :key="m.key"
-              class="mini-bar-outer"
-              :title="`${m.label}: ${m.val}g (mín ${m.min}g · obj ${m.target}g)`"
+              v-for="slot in SLOTS"
+              :key="slot"
+              class="slot-pill"
+              :class="{ 'slot-pill--ai': (meal[slot]?.aiAdjustments?.length ?? 0) > 0 }"
+              :title="`${meal[slot]?.label}: ${meal[slot]?.kcal} kcal`"
             >
-              <div class="mini-bar-track">
-                <div class="mini-bar-zone" :style="{ left: m.minPct+'%', width: (m.targetPct-m.minPct)+'%', background: m.color }"></div>
-                <div class="mini-bar-fill" :style="{ width: m.pct+'%', background: m.color }"></div>
-              </div>
-              <div class="mini-tick" :style="{ left: m.targetPct+'%' }"></div>
+              <span class="material-symbols-rounded">{{ slotIcon(slot) }}</span>
+              <span class="slot-pill__val">{{ meal[slot]?.kcal }}</span>
             </div>
           </div>
 
-          <!-- Status badge -->
+          <!-- Status badge with optional AI inline -->
           <div class="meal-cell__status" :class="`meal-status--${meal.status}`">
             <span class="material-symbols-rounded icon-fill" aria-hidden="true">{{ statusIcon(meal.status) }}</span>
-            {{ statusLabel(meal.status) }}
-          </div>
-
-          <!-- AI adjusted badge -->
-          <div v-if="meal.aiAdjusted" class="ai-adjusted-badge">
-            <span class="material-symbols-rounded icon-fill" aria-hidden="true">auto_awesome</span>
-            IA aplicada
+            <span>{{ statusLabel(meal.status) }}</span>
+            <span v-if="meal.aiAdjusted" class="ai-inline" title="Ajustat amb IA">
+              <span class="material-symbols-rounded icon-fill" aria-hidden="true">auto_awesome</span>
+            </span>
           </div>
         </div>
       </div>
@@ -194,10 +198,6 @@ import { useUIStore } from '@/stores/uiStore'
 
 const weekStore = useWeekStore()
 const uiStore = useUIStore()
-
-const props = defineProps({
-  weekOffset: { type: Number, default: 0 }
-})
 
 const dragOverDay = ref(null)
 const draggingSessionId = ref(null)
@@ -240,7 +240,7 @@ const currentTimePx = computed(() => {
 })
 
 function isToday(dayIdx) {
-  if (props.weekOffset !== 0) return false
+  if (weekStore.weekOffset !== 0) return false
   return dayIdx === todayIndex.value
 }
 
@@ -263,7 +263,7 @@ const todayIndex = computed(() => {
 function getDayNum(dayIdx) {
   const today = new Date()
   const startOfWeek = new Date(today)
-  startOfWeek.setDate(today.getDate() - todayIndex.value + dayIdx + props.weekOffset * 7)
+  startOfWeek.setDate(today.getDate() - todayIndex.value + dayIdx + weekStore.weekOffset * 7)
   return startOfWeek.getDate()
 }
 
@@ -276,6 +276,12 @@ function formatDuration(mins) {
 
 function getSessionColor(type) {
   return weekStore.sessionTypes[type]?.color ?? 'var(--purple)'
+}
+
+function isUnreviewedHigh(session, dayIdx) {
+  if (session.load !== 'high') return false
+  if (weekStore.isDayPast(dayIdx)) return false
+  return !weekStore.meals[dayIdx]?.aiAdjusted
 }
 
 function getSessionIcon(type) {
@@ -343,26 +349,10 @@ function calendarCellLabel(dayIndex) {
   return `${label}. Prem Enter per afegir una sessió.${selectedType}`
 }
 
-const MINI_MACROS_CFG = [
-  { key: 'c', label: 'Hidrats',  min: 200, target: 280, max: 380, color: 'var(--purple)' },
-  { key: 'p', label: 'Proteïna', min: 130, target: 155, max: 190, color: '#00C896' },
-  { key: 'f', label: 'Greixos',  min: 55,  target: 72,  max: 100, color: '#F59E0B' },
-]
+const SLOTS = ['breakfast', 'lunch', 'snack', 'dinner']
 
-function miniMacros(meal) {
-  const slots = [meal.breakfast, meal.lunch, meal.snack, meal.dinner]
-  const vals = {
-    c: slots.reduce((s, m) => s + (m?.carbs ?? 0), 0),
-    p: slots.reduce((s, m) => s + (m?.protein ?? 0), 0),
-    f: slots.reduce((s, m) => s + (m?.fat ?? 0), 0),
-  }
-  return MINI_MACROS_CFG.map(cfg => ({
-    ...cfg,
-    val: vals[cfg.key],
-    pct:       Math.min(100, (vals[cfg.key] / cfg.max) * 100),
-    minPct:    (cfg.min    / cfg.max) * 100,
-    targetPct: (cfg.target / cfg.max) * 100,
-  }))
+function slotIcon(slot) {
+  return { breakfast: 'wb_sunny', lunch: 'lunch_dining', snack: 'cookie', dinner: 'dinner_dining' }[slot] ?? 'restaurant'
 }
 
 function statusIcon(status) {
@@ -642,30 +632,41 @@ function statusLabel(status) {
 }
 
 /* Meal cell */
-.meal-cell { justify-content: space-between; }
+.meal-cell { justify-content: space-between; cursor: pointer; transition: background var(--dur-fast); }
+.meal-cell:hover { background: var(--surface-2); }
+.meal-cell:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .meal-cell--warning { background: rgba(255,122,53,0.04); }
 .meal-cell--warning .meal-kcal-val { color: var(--warning); }
+.meal-cell--warning:hover { background: rgba(255,122,53,0.08); }
 
 .meal-cell__kcal { display: flex; align-items: baseline; gap: 3px; }
 .meal-kcal-val { font-size: 16px; font-weight: 700; color: var(--text); font-family: var(--font-display); }
 .meal-kcal-target { font-size: 10px; color: var(--text-3); }
 
-.meal-mini-bars { display: flex; flex-direction: column; gap: 4px; }
-.mini-bar-outer { position: relative; height: 3px; }
-.mini-bar-track {
-  position: absolute; inset: 0;
-  background: var(--surface-3); border-radius: 99px; overflow: hidden;
+/* Slot pills (4 small chips per meal) */
+.meal-cell__slots {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 3px;
 }
-.mini-bar-zone  { position: absolute; top: 0; bottom: 0; opacity: 0.2; }
-.mini-bar-fill  { position: absolute; top: 0; bottom: 0; left: 0; border-radius: 99px; transition: width 0.6s var(--ease); }
-.mini-tick {
-  position: absolute; top: -1px; bottom: -1px; width: 1.5px;
-  background: var(--text-2); opacity: 0.5;
-  transform: translateX(-50%); border-radius: 1px; pointer-events: none;
+.slot-pill {
+  display: flex; align-items: center; gap: 3px;
+  padding: 3px 5px;
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  font-size: 10px; font-weight: 600; color: var(--text-2);
+  min-width: 0;
+}
+.slot-pill .material-symbols-rounded { font-size: 11px; color: var(--accent); flex-shrink: 0; }
+.slot-pill__val { font-variant-numeric: tabular-nums; }
+.slot-pill--ai {
+  background: var(--accent-light);
+  color: var(--accent-dark);
+  border-left: 2px solid var(--accent);
 }
 
 .meal-cell__status {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 4px;
   font-size: 10px;
@@ -678,14 +679,13 @@ function statusLabel(status) {
 .meal-status--ok { background: var(--accent-light); color: var(--accent-dark); }
 .meal-status--warning { background: var(--warning-light); color: var(--warning); }
 
-.ai-adjusted-badge {
-  display: flex;
+.ai-inline {
+  display: inline-flex;
   align-items: center;
-  gap: 3px;
-  font-size: 9px;
-  font-weight: 600;
-  color: var(--accent-dark);
-  opacity: 0.8;
+  justify-content: center;
+  margin-left: 2px;
+  padding-left: 5px;
+  border-left: 1px solid color-mix(in srgb, currentColor 25%, transparent);
 }
-.ai-adjusted-badge .material-symbols-rounded { font-size: 11px; }
+.ai-inline .material-symbols-rounded { font-size: 11px; }
 </style>
