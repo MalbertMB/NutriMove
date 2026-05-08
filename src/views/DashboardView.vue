@@ -12,14 +12,6 @@
       @save="handleSave"
     />
 
-    <SectionNav
-      :items="[
-        { label: 'Setmana', target: 'dashboard-calendar', icon: 'calendar_month' },
-        { label: 'Avui', target: 'dashboard-today', icon: 'today' },
-        { label: 'Biblioteca', target: 'dashboard-library', icon: 'library_books' }
-      ]"
-    />
-
     <!-- KPI strip -->
     <div class="kpi-strip">
       <StatCard
@@ -83,37 +75,6 @@
           </div>
         </transition>
 
-        <!-- Quick add form -->
-        <div id="dashboard-today" class="quick-add">
-          <div class="quick-add__header">
-            <span class="material-symbols-rounded">add_circle</span>
-            Afegir sessió ràpida
-          </div>
-          <div class="field">
-            <label class="field__label" for="qa-day">Dia</label>
-            <select id="qa-day" v-model="qaDay" class="field__select">
-              <option v-for="(day, i) in weekStore.daysFull" :key="i" :value="i">{{ day }}</option>
-            </select>
-          </div>
-          <div class="field">
-            <label class="field__label" for="qa-type">Tipus</label>
-            <select id="qa-type" v-model="qaType" class="field__select">
-              <option v-for="(t, key) in weekStore.sessionTypes" :key="key" :value="key">{{ t.label }}</option>
-            </select>
-          </div>
-          <div class="field">
-            <label class="field__label" for="qa-intensity">Intensitat</label>
-            <select id="qa-intensity" v-model="qaIntensity" class="field__select">
-              <option value="Baixa">Baixa</option>
-              <option value="Moderada">Moderada</option>
-              <option value="Alta">Alta</option>
-            </select>
-          </div>
-          <button class="btn btn--primary btn--full" @click="handleQuickAdd">
-            <span class="material-symbols-rounded">add</span>
-            Nova sessió
-          </button>
-        </div>
       </aside>
 
       <!-- Calendar -->
@@ -129,6 +90,7 @@
     <!-- Overlays -->
     <SessionPreviewCard />
     <SessionEditPanel />
+    <SessionAddPanel />
     <AIPopover />
     <AIDrawer />
   </div>
@@ -137,12 +99,12 @@
 <script setup>
 import { ref, computed } from 'vue'
 import AppTopBar from '@/components/layout/AppTopBar.vue'
-import SectionNav from '@/components/ui/SectionNav.vue'
 import WeekCalendar from '@/components/dashboard/WeekCalendar.vue'
 import SessionLibrary from '@/components/session/SessionLibrary.vue'
 import StatCard from '@/components/dashboard/StatCard.vue'
 import SessionPreviewCard from '@/components/session/SessionPreviewCard.vue'
 import SessionEditPanel from '@/components/session/SessionEditPanel.vue'
+import SessionAddPanel from '@/components/session/SessionAddPanel.vue'
 import AIPopover from '@/components/ai/AIPopover.vue'
 import AIDrawer from '@/components/ai/AIDrawer.vue'
 import { useWeekStore } from '@/stores/weekStore'
@@ -152,9 +114,6 @@ const weekStore = useWeekStore()
 const uiStore = useUIStore()
 
 const weekOffset = ref(0)
-const qaDay = ref(0)
-const qaType = ref('cycling')
-const qaIntensity = ref('Moderada')
 
 const weekLabel = computed(() => {
   const today = new Date()
@@ -188,14 +147,6 @@ function handleDropSession({ dayIndex, type }) {
 
 function handleAddFromLibrary({ type, day }) {
   weekStore.addSession(day, type)
-}
-
-function handleQuickAdd() {
-  const session = weekStore.addSession(qaDay.value, qaType.value, 60, qaIntensity.value)
-  uiStore.showToast(`Sessió afegida el ${weekStore.daysFull[qaDay.value]}.`, 'success')
-  if (qaIntensity.value === 'Alta') {
-    setTimeout(() => uiStore.openEditPanel(session.id), 300)
-  }
 }
 
 function openWeekAIDrawer() {
@@ -300,53 +251,5 @@ function handleSave() {
 .alert-banner__cta:hover { background: #E8680A; transform: translateY(-1px); box-shadow: var(--shadow-md); }
 .alert-banner__cta .material-symbols-rounded { font-size: 16px; }
 
-/* Quick add */
-.quick-add {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  box-shadow: var(--shadow-sm);
-}
-.quick-add__header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-family: var(--font-display);
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--text);
-}
-.quick-add__header .material-symbols-rounded { font-size: 16px; color: var(--accent); }
-
-.field { display: flex; flex-direction: column; gap: 5px; }
-.field__label { font-size: 11px; font-weight: 600; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.4px; }
-.field__select {
-  border: 1.5px solid var(--border);
-  border-radius: var(--radius-md);
-  padding: 8px 10px;
-  font-family: var(--font-body);
-  font-size: 13px;
-  color: var(--text);
-  background: var(--surface);
-  outline: none;
-  cursor: pointer;
-  transition: border-color var(--dur-fast);
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 10px center;
-  padding-right: 28px;
-}
-.field__select:focus { border-color: var(--accent); }
-
-.btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 16px; border-radius: var(--radius-md); font-family: var(--font-body); font-size: 13px; font-weight: 500; cursor: pointer; transition: all var(--dur-fast); border: none; }
-.btn--primary { background: var(--accent); color: var(--navy); }
-.btn--primary:hover { background: var(--accent-dark); transform: translateY(-1px); box-shadow: var(--shadow-md); }
-.btn--full { width: 100%; justify-content: center; }
-.btn .material-symbols-rounded { font-size: 16px; }
 
 </style>

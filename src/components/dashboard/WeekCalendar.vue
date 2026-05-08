@@ -8,10 +8,10 @@
         v-for="(day, i) in weekStore.days"
         :key="day"
         class="cal-header__day"
-        :class="{ 'cal-header__day--today': i === todayIndex }"
+        :class="{ 'cal-header__day--today': isToday(i) }"
       >
         <span class="day-abbr">{{ day }}</span>
-        <span class="day-num" :class="{ 'day-num--today': i === todayIndex }">
+        <span class="day-num" :class="{ 'day-num--today': isToday(i) }">
           {{ getDayNum(i) }}
         </span>
       </div>
@@ -23,14 +23,15 @@
         <span class="material-symbols-rounded" aria-hidden="true">fitness_center</span>
         Sessions
       </div>
-      <div class="sessions-content">
+      <div ref="scrollRef" class="sessions-scroll">
+      <div class="sessions-content" :style="{ height: TOTAL_HEIGHT + 'px' }">
         <!-- Time ruler -->
         <div class="time-ruler" aria-hidden="true">
           <div
             v-for="h in timeHours"
             :key="h"
             class="time-ruler__label"
-            :style="{ top: hourToPercent(h) + '%' }"
+            :style="{ top: hourToPx(h) + 'px' }"
           >
             {{ formatHour(h) }}
           </div>
@@ -41,11 +42,12 @@
           v-for="(day, i) in weekStore.days"
           :key="'s-' + i"
           class="sessions-day"
-          :class="{ 'sessions-day--drop-target': dragOverDay === i, 'sessions-day--today': i === todayIndex }"
+          :class="{ 'sessions-day--drop-target': dragOverDay === i, 'sessions-day--today': isToday(i) }"
           :aria-dropeffect="uiStore.keyboardPlacementSessionType ? 'move' : 'none'"
           :aria-label="calendarCellLabel(i)"
           role="button"
           tabindex="0"
+          @click="handleDayClick(i, $event)"
           @dragover.prevent="dragOverDay = i"
           @dragleave="dragOverDay = null"
           @drop="handleDrop(i, $event)"
@@ -58,16 +60,26 @@
             :key="'gl-' + h"
             class="hour-line"
             :class="{ 'hour-line--major': h % 2 === 0 }"
-            :style="{ top: hourToPercent(h) + '%' }"
+            :style="{ top: hourToPx(h) + 'px' }"
             aria-hidden="true"
           ></div>
+
+          <!-- Current time indicator -->
+          <div
+            v-if="isToday(i)"
+            class="current-time-line"
+            :style="{ top: currentTimePx + 'px' }"
+            aria-hidden="true"
+          >
+            <div class="current-time-dot"></div>
+          </div>
 
           <!-- Session blocks -->
           <div
             v-for="session in weekStore.sessionsByDay[i]"
             :key="session.id"
             class="session-block"
-            :class="[`session-block--${session.type}`, `session-block--${session.load}`]"
+            :class="[`session-block--${session.type}`, `session-block--${session.load}`, session.duration <= 75 && 'session-block--inline-layout']"
             :style="{
               '--sess-color': getSessionColor(session.type),
               top: sessionTop(session),
@@ -79,17 +91,41 @@
             tabindex="0"
             @keydown.enter="openPreview(session.id, $event)"
           >
-            <div class="session-block__header">
+            <!-- ≤75min: icon + duration + name all inline -->
+            <div v-if="session.duration <= 75" class="session-block__inline">
               <span class="material-symbols-rounded session-block__icon">{{ getSessionIcon(session.type) }}</span>
               <span class="session-block__duration">{{ formatDuration(session.duration) }}</span>
+              <span class="session-block__label session-block__label--inline">{{ session.label }}</span>
               <span v-if="session.load === 'high'" class="session-block__warn" aria-label="Càrrega alta">
                 <span class="material-symbols-rounded icon-fill" aria-hidden="true">warning</span>
               </span>
             </div>
-            <span class="session-block__label">{{ session.label }}</span>
-            <div class="session-block__kcal">{{ session.kcal }} kcal · {{ session.intensity }}</div>
+            <!-- >75min and <120min: icon+duration row, name row -->
+            <template v-else-if="session.duration < 120">
+              <div class="session-block__header">
+                <span class="material-symbols-rounded session-block__icon">{{ getSessionIcon(session.type) }}</span>
+                <span class="session-block__duration">{{ formatDuration(session.duration) }}</span>
+                <span v-if="session.load === 'high'" class="session-block__warn" aria-label="Càrrega alta">
+                  <span class="material-symbols-rounded icon-fill" aria-hidden="true">warning</span>
+                </span>
+              </div>
+              <span class="session-block__label">{{ session.label }}</span>
+            </template>
+            <!-- >120min: icon+duration, name, kcal+intensity -->
+            <template v-else>
+              <div class="session-block__header">
+                <span class="material-symbols-rounded session-block__icon">{{ getSessionIcon(session.type) }}</span>
+                <span class="session-block__duration">{{ formatDuration(session.duration) }}</span>
+                <span v-if="session.load === 'high'" class="session-block__warn" aria-label="Càrrega alta">
+                  <span class="material-symbols-rounded icon-fill" aria-hidden="true">warning</span>
+                </span>
+              </div>
+              <span class="session-block__label">{{ session.label }}</span>
+              <div class="session-block__kcal">{{ session.kcal }} kcal · {{ session.intensity }}</div>
+            </template>
           </div>
         </div>
+      </div>
       </div>
     </div>
 
@@ -119,13 +155,14 @@
             <div
               v-for="m in miniMacros(meal)"
               :key="m.key"
-              class="mini-bar-track"
-              :title="`${m.label}: ${m.val}g`"
+              class="mini-bar-outer"
+              :title="`${m.label}: ${m.val}g (mín ${m.min}g · obj ${m.target}g)`"
             >
-              <div
-                class="mini-bar-fill"
-                :style="{ width: m.pct + '%', background: m.color }"
-              ></div>
+              <div class="mini-bar-track">
+                <div class="mini-bar-zone" :style="{ left: m.minPct+'%', width: (m.targetPct-m.minPct)+'%', background: m.color }"></div>
+                <div class="mini-bar-fill" :style="{ width: m.pct+'%', background: m.color }"></div>
+              </div>
+              <div class="mini-tick" :style="{ left: m.targetPct+'%' }"></div>
             </div>
           </div>
 
@@ -147,7 +184,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useWeekStore } from '@/stores/weekStore'
 import { useUIStore } from '@/stores/uiStore'
 
@@ -160,18 +197,22 @@ const props = defineProps({
 
 const dragOverDay = ref(null)
 const emit = defineEmits(['dropSession'])
+const scrollRef = ref(null)
+const now = ref(new Date())
+let timeInterval = null
 
-// Time grid constants
-const TIME_START = 6   // 6:00
-const TIME_END   = 22  // 22:00
-const TIME_RANGE = TIME_END - TIME_START
+// Time grid constants — full day, pixel-based
+const TIME_START  = 0
+const TIME_END    = 24
+const TIME_RANGE  = TIME_END - TIME_START
+const HOUR_PX     = 32
+const TOTAL_HEIGHT = TIME_RANGE * HOUR_PX  // 768px
 
-// Lines at every hour, labels every 2h
 const allHours  = Array.from({ length: TIME_RANGE + 1 }, (_, i) => TIME_START + i)
 const timeHours = allHours.filter(h => h % 2 === 0)
 
-function hourToPercent(h) {
-  return ((h - TIME_START) / TIME_RANGE) * 100
+function hourToPx(h) {
+  return (h - TIME_START) * HOUR_PX
 }
 
 function formatHour(h) {
@@ -181,13 +222,32 @@ function formatHour(h) {
 function sessionTop(session) {
   const start = session.startTime ?? 8
   const clamped = Math.max(TIME_START, Math.min(TIME_END, start))
-  return hourToPercent(clamped) + '%'
+  return hourToPx(clamped) + 'px'
 }
 
 function sessionHeight(session) {
-  const hours = session.duration / 60
-  return (hours / TIME_RANGE) * 100 + '%'
+  return (session.duration / 60 * HOUR_PX) + 'px'
 }
+
+const currentTimePx = computed(() => {
+  const h = now.value.getHours() + now.value.getMinutes() / 60
+  return hourToPx(h)
+})
+
+function isToday(dayIdx) {
+  if (props.weekOffset !== 0) return false
+  return dayIdx === todayIndex.value
+}
+
+onMounted(async () => {
+  await nextTick()
+  if (scrollRef.value) scrollRef.value.scrollTop = 6 * HOUR_PX
+  timeInterval = setInterval(() => { now.value = new Date() }, 60000)
+})
+
+onUnmounted(() => {
+  clearInterval(timeInterval)
+})
 
 const todayIndex = computed(() => {
   const day = new Date().getDay()
@@ -217,6 +277,7 @@ function getSessionIcon(type) {
   return weekStore.sessionTypes[type]?.icon ?? 'fitness_center'
 }
 
+
 function openPreview(sessionId, event) {
   const rect = event.currentTarget?.getBoundingClientRect?.() ?? null
   uiStore.openPreviewSession(sessionId, rect)
@@ -228,6 +289,16 @@ function handleDrop(dayIndex, event) {
   if (type) {
     emit('dropSession', { dayIndex, type })
   }
+}
+
+function handleDayClick(dayIndex, event) {
+  // Ignore clicks on session blocks
+  if (event.target.closest('.session-block')) return
+  const rect = event.currentTarget.getBoundingClientRect()
+  const rawHour = TIME_START + (event.clientY - rect.top) / HOUR_PX
+  const snapped = Math.round(rawHour * 2) / 2  // snap to 30-min
+  const clamped = Math.max(TIME_START, Math.min(23.5, snapped))
+  uiStore.openAddPanel(dayIndex, clamped)
 }
 
 function handleKeyboardDrop(dayIndex) {
@@ -243,16 +314,26 @@ function calendarCellLabel(dayIndex) {
   return `${label}. Prem Enter per afegir una sessió.${selectedType}`
 }
 
+const MINI_MACROS_CFG = [
+  { key: 'c', label: 'Hidrats',  min: 200, target: 280, max: 380, color: 'var(--purple)' },
+  { key: 'p', label: 'Proteïna', min: 130, target: 155, max: 190, color: '#00C896' },
+  { key: 'f', label: 'Greixos',  min: 55,  target: 72,  max: 100, color: '#F59E0B' },
+]
+
 function miniMacros(meal) {
   const slots = [meal.breakfast, meal.lunch, meal.snack, meal.dinner]
-  const totalCarbs = slots.reduce((s, m) => s + (m?.carbs ?? 0), 0)
-  const totalProtein = slots.reduce((s, m) => s + (m?.protein ?? 0), 0)
-  const totalFat = slots.reduce((s, m) => s + (m?.fat ?? 0), 0)
-  return [
-    { key: 'c', label: 'Hidrats', val: totalCarbs, pct: Math.min(100, (totalCarbs / 250) * 100), color: 'var(--purple)' },
-    { key: 'p', label: 'Proteïna', val: totalProtein, pct: Math.min(100, (totalProtein / 120) * 100), color: '#00C896' },
-    { key: 'f', label: 'Greixos', val: totalFat, pct: Math.min(100, (totalFat / 60) * 100), color: '#F59E0B' },
-  ]
+  const vals = {
+    c: slots.reduce((s, m) => s + (m?.carbs ?? 0), 0),
+    p: slots.reduce((s, m) => s + (m?.protein ?? 0), 0),
+    f: slots.reduce((s, m) => s + (m?.fat ?? 0), 0),
+  }
+  return MINI_MACROS_CFG.map(cfg => ({
+    ...cfg,
+    val: vals[cfg.key],
+    pct:       Math.min(100, (vals[cfg.key] / cfg.max) * 100),
+    minPct:    (cfg.min    / cfg.max) * 100,
+    targetPct: (cfg.target / cfg.max) * 100,
+  }))
 }
 
 function statusIcon(status) {
@@ -310,13 +391,12 @@ function statusLabel(status) {
 .cal-track {
   display: grid;
   grid-template-columns: 100px 1fr;
-  grid-template-rows: 1fr;
-  flex: 1;
-  min-height: 0;
+  flex: 0 0 450px;
   overflow: hidden;
 }
 .cal-track--meals {
-  flex: 0 0 160px;
+  flex: 1;
+  min-height: 150px;
   border-top: 2px solid var(--border);
   overflow: hidden;
 }
@@ -339,12 +419,22 @@ function statusLabel(status) {
 }
 .cal-track__label .material-symbols-rounded { font-size: 18px; color: var(--text-3); }
 
+/* ── Sessions scrollable wrapper ────────────────────────── */
+.sessions-scroll {
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-2) transparent;
+}
+.sessions-scroll::-webkit-scrollbar { width: 4px; }
+.sessions-scroll::-webkit-scrollbar-track { background: transparent; }
+.sessions-scroll::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 99px; }
+
 /* ── Sessions content (time-ruler + 7 day columns) ───────── */
 .sessions-content {
   display: grid;
   grid-template-columns: 48px repeat(7, 1fr);
-  grid-template-rows: 1fr;
-  overflow: hidden;
+  /* height set via inline style from TOTAL_HEIGHT constant */
 }
 
 /* Time ruler */
@@ -407,6 +497,27 @@ function statusLabel(status) {
 .sessions-day--drop-target .sessions-day__empty { opacity: 1; }
 .sessions-day__empty .material-symbols-rounded { font-size: 18px; }
 
+/* ── Current time indicator ─────────────────────────────── */
+.current-time-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #EF4444;
+  pointer-events: none;
+  z-index: 3;
+}
+.current-time-dot {
+  position: absolute;
+  left: -4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #EF4444;
+}
+
 /* ── Session blocks (absolutely positioned by time) ─────── */
 .session-block {
   position: absolute;
@@ -438,6 +549,31 @@ function statusLabel(status) {
   background: color-mix(in srgb, var(--warning) 9%, var(--surface));
 }
 
+/* Inline layout (≤75min): vertically centered, everything on one row */
+.session-block--inline-layout {
+  display: flex;
+  align-items: center;
+}
+.session-block__inline {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow: hidden;
+  width: 100%;
+}
+/* Duration must not stretch in inline layout */
+.session-block__inline .session-block__duration { flex: none; }
+/* Name is pushed to the right edge; auto margin collapses when space is tight
+   so it truncates at the right end with "…" instead of the left */
+.session-block__inline .session-block__label--inline {
+  margin-left: auto;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Stacked layout (>75min) */
 .session-block__header {
   display: flex;
   align-items: center;
@@ -448,7 +584,7 @@ function statusLabel(status) {
 .session-block__duration { font-size: 10px; font-weight: 700; color: var(--sess-color); flex: 1; }
 .session-block__warn .material-symbols-rounded { font-size: 12px; color: var(--warning); }
 .session-block__label { font-size: 10px; font-weight: 600; color: var(--text); line-height: 1.3; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.session-block__kcal { font-size: 9px; color: var(--text-3); margin-top: 1px; }
+.session-block__kcal { font-size: 9px; color: var(--text-3); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* ── Meals track cells ──────────────────────────────────── */
 .cal-track__cells {
@@ -484,9 +620,19 @@ function statusLabel(status) {
 .meal-kcal-val { font-size: 16px; font-weight: 700; color: var(--text); font-family: var(--font-display); }
 .meal-kcal-target { font-size: 10px; color: var(--text-3); }
 
-.meal-mini-bars { display: flex; flex-direction: column; gap: 3px; }
-.mini-bar-track { height: 3px; background: var(--surface-3); border-radius: 99px; overflow: hidden; }
-.mini-bar-fill { height: 100%; border-radius: 99px; transition: width 0.6s var(--ease); }
+.meal-mini-bars { display: flex; flex-direction: column; gap: 4px; }
+.mini-bar-outer { position: relative; height: 3px; }
+.mini-bar-track {
+  position: absolute; inset: 0;
+  background: var(--surface-3); border-radius: 99px; overflow: hidden;
+}
+.mini-bar-zone  { position: absolute; top: 0; bottom: 0; opacity: 0.2; }
+.mini-bar-fill  { position: absolute; top: 0; bottom: 0; left: 0; border-radius: 99px; transition: width 0.6s var(--ease); }
+.mini-tick {
+  position: absolute; top: -1px; bottom: -1px; width: 1.5px;
+  background: var(--text-2); opacity: 0.5;
+  transform: translateX(-50%); border-radius: 1px; pointer-events: none;
+}
 
 .meal-cell__status {
   display: flex;

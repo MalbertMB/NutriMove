@@ -1,14 +1,6 @@
 <template>
   <div class="progress-view">
     <AppTopBar title="Progrés" subtitle="Evolució setmanal del rendiment i la nutrició" />
-    <SectionNav
-      :items="[
-        { label: 'Gràfics de rendiment', target: 'progress-charts', icon: 'bar_chart' },
-        { label: 'Historial de sessions', target: 'progress-history', icon: 'history' },
-        { label: 'Adherència nutricional', target: 'progress-compliance', icon: 'verified' }
-      ]"
-    />
-
     <div class="progress-content">
       <!-- Chart placeholders (functional bars) -->
       <div id="progress-charts" class="chart-row" tabindex="-1">
@@ -86,7 +78,6 @@
 
 <script setup>
 import AppTopBar from '@/components/layout/AppTopBar.vue'
-import SectionNav from '@/components/ui/SectionNav.vue'
 
 const kcalHistory = [
   { label: 'S-5', kcal: 2200 }, { label: 'S-4', kcal: 2800 }, { label: 'S-3', kcal: 2400 },

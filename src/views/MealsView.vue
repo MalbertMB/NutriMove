@@ -2,13 +2,6 @@
   <div class="meals-view">
     <AppTopBar title="Àpats" subtitle="Planificació nutricional setmanal" />
 
-    <SectionNav
-      :items="[
-        { label: 'Pla setmanal', target: 'meal-plan', icon: 'calendar_month' },
-        { label: 'Log d\'àpats', target: 'meal-log', icon: 'receipt_long' }
-      ]"
-    />
-
     <div class="meals-content">
       <div id="meal-plan" class="meals-grid" tabindex="-1">
         <div
@@ -83,7 +76,6 @@
 
 <script setup>
 import AppTopBar from '@/components/layout/AppTopBar.vue'
-import SectionNav from '@/components/ui/SectionNav.vue'
 import MacroBar from '@/components/ui/MacroBar.vue'
 import { useWeekStore } from '@/stores/weekStore'
 

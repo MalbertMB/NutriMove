@@ -7,14 +7,6 @@
       @save="uiStore.showToast('Sessions desades.', 'success')"
     />
 
-    <SectionNav
-      :items="[
-        { label: 'Les meves rutines', target: 'sessions-list', icon: 'routine' },
-        { label: 'Historial de sessions', target: 'sessions-summary', icon: 'history' },
-        { label: 'Biblioteca', target: 'sessions-library', icon: 'library_books' }
-      ]"
-    />
-
     <div class="sessions-content">
       <!-- Left: week overview by day -->
       <div id="sessions-list" class="sessions-left" tabindex="-1">
@@ -147,7 +139,6 @@
 <script setup>
 import { computed } from 'vue'
 import AppTopBar from '@/components/layout/AppTopBar.vue'
-import SectionNav from '@/components/ui/SectionNav.vue'
 import SessionEditPanel from '@/components/session/SessionEditPanel.vue'
 import SessionLibrary from '@/components/session/SessionLibrary.vue'
 import LoadBadge from '@/components/ui/LoadBadge.vue'

@@ -22,15 +22,96 @@ function createDefaultSessions() {
   ]
 }
 
+// Per-day caloric targets based on training load (Mon–Sun)
+const DAY_BASE_TARGETS = [2400, 2150, 2350, 2100, 2750, 2750, 2100]
+
 function createDefaultMeals() {
-  const mealTemplate = (dayOffset) => ({
-    breakfast: { label: 'Esmorzar', kcal: 480, carbs: 65, protein: 22, fat: 14, items: ['Farina de civada', 'Plàtan', 'Llet semi'] },
-    lunch: { label: 'Dinar', kcal: 720, carbs: 90, protein: 45, fat: 18, items: ['Arròs integral', 'Pit de pollastre', 'Bròcoli'] },
-    snack: { label: 'Berenar', kcal: 220, carbs: 30, protein: 12, fat: 6, items: ['Iogurt grec', 'Fruits secs'] },
-    dinner: { label: 'Sopar', kcal: 580, carbs: 55, protein: 38, fat: 16, items: ['Pasta integral', 'Salmó', 'Amanida'] },
-    total: 2000, targetKcal: 2000, status: 'ok'
-  })
-  return DAYS.map((_, i) => mealTemplate(i))
+  return [
+    // Dilluns — natació matinal 60 min
+    {
+      breakfast: { label: 'Esmorzar', kcal: 560, carbs: 70, protein: 24, fat: 14,
+        items: ['Civada 80g', 'Plàtan', 'Pols de proteïna', 'Llet semidesnatada'] },
+      lunch:     { label: 'Dinar',    kcal: 780, carbs: 96, protein: 52, fat: 18,
+        items: ['Arròs integral 150g', 'Pit de pollastre 180g', 'Bròcoli al vapor', 'AOVE'] },
+      snack:     { label: 'Berenar',  kcal: 245, carbs: 22, protein: 18, fat: 9,
+        items: ['Iogurt grec 0% 200g', 'Nous 20g', 'Mel'] },
+      dinner:    { label: 'Sopar',    kcal: 815, carbs: 72, protein: 48, fat: 22,
+        items: ['Salmó al forn 200g', 'Patata dolça 220g', 'Espinacs saltats', 'AOVE'] },
+      total: 2400, targetKcal: 2400, status: 'ok',
+    },
+    // Dimarts — descans
+    {
+      breakfast: { label: 'Esmorzar', kcal: 420, carbs: 40, protein: 20, fat: 16,
+        items: ['Pa integral torrat', 'Aguacate 1/2', 'Ous remenats x2', 'Tomàquet cherry'] },
+      lunch:     { label: 'Dinar',    kcal: 680, carbs: 88, protein: 30, fat: 12,
+        items: ['Llenties pardines 150g', 'Pastanaga', 'Pebrot vermell', 'Pa moreno'] },
+      snack:     { label: 'Berenar',  kcal: 190, carbs: 24, protein: 5, fat: 7,
+        items: ['Poma Golden', 'Ametlles 20g'] },
+      dinner:    { label: 'Sopar',    kcal: 710, carbs: 62, protein: 48, fat: 18,
+        items: ['Pollastre al forn 200g', 'Batata 150g', 'Mongetes verdes', 'All i pebre'] },
+      total: 2000, targetKcal: 2150, status: 'warning',
+    },
+    // Dimecres — força upper body 75 min
+    {
+      breakfast: { label: 'Esmorzar', kcal: 490, carbs: 54, protein: 28, fat: 16,
+        items: ['Torrades d\'espelta x3', 'Crema de cacauets', 'Ou dur x2', 'Nabius'] },
+      lunch:     { label: 'Dinar',    kcal: 760, carbs: 100, protein: 44, fat: 14,
+        items: ['Pasta integral 130g', 'Tonyina en escabetx', 'Tomàquet', 'Alfàbrega', 'AOVE'] },
+      snack:     { label: 'Berenar',  kcal: 255, carbs: 32, protein: 24, fat: 4,
+        items: ['Batut proteic de xocolata', 'Plàtan petit'] },
+      dinner:    { label: 'Sopar',    kcal: 845, carbs: 78, protein: 56, fat: 20,
+        items: ['Filet de vedella 200g', 'Arròs basmati 120g', 'Espàrrecs a la planxa', 'Pebre negre'] },
+      total: 2350, targetKcal: 2350, status: 'ok',
+    },
+    // Dijous — descans
+    {
+      breakfast: { label: 'Esmorzar', kcal: 400, carbs: 52, protein: 12, fat: 10,
+        items: ['Muesli sense sucre 70g', 'Llet vegetal d\'avena', 'Poma ratllada', 'Canyella'] },
+      lunch:     { label: 'Dinar',    kcal: 720, carbs: 92, protein: 28, fat: 16,
+        items: ['Cigrons al curri 200g', 'Arròs basmati 100g', 'Espinacs', 'Cúrcuma i gingebre'] },
+      snack:     { label: 'Berenar',  kcal: 220, carbs: 30, protein: 8, fat: 6,
+        items: ['Iogurt natural sencer', 'Kiwi x2', 'Grana de lli'] },
+      dinner:    { label: 'Sopar',    kcal: 760, carbs: 62, protein: 52, fat: 18,
+        items: ['Bacallà a la llauna 200g', 'Puré de pèsols', 'Tomàquet confitat', 'Pa integral'] },
+      total: 2100, targetKcal: 2100, status: 'ok',
+    },
+    // Divendres — ciclisme 2h (càrrega alta)
+    {
+      breakfast: { label: 'Esmorzar', kcal: 620, carbs: 80, protein: 30, fat: 14,
+        items: ['Pancakes de civada x4', 'Mel de flors', 'Maduixes', 'Pols de proteïna'] },
+      lunch:     { label: 'Dinar',    kcal: 900, carbs: 124, protein: 56, fat: 18,
+        items: ['Pasta integral 160g', 'Pit de pollastre 200g', 'Pesto casolà', 'Pa artesà'] },
+      snack:     { label: 'Berenar',  kcal: 300, carbs: 52, protein: 6, fat: 8,
+        items: ['Dàtils 60g', 'Ametlles 25g', 'Plàtan gran'] },
+      dinner:    { label: 'Sopar',    kcal: 800, carbs: 78, protein: 52, fat: 20,
+        items: ['Truita de tonyina x3 ous', 'Arròs integral 120g', 'Amanida Niçoise'] },
+      total: 2620, targetKcal: 2750, status: 'warning',
+    },
+    // Dissabte — ciclisme 2h
+    {
+      breakfast: { label: 'Esmorzar', kcal: 680, carbs: 72, protein: 38, fat: 22,
+        items: ['Tortilla francesa x3 ous', 'Torrades integrals x4', 'Taronja', 'Cafè amb llet'] },
+      lunch:     { label: 'Dinar',    kcal: 880, carbs: 114, protein: 46, fat: 20,
+        items: ['Paella de pollastre i verdures', 'Amanida mixta', 'Pa de pagès', 'Allioli lleuger'] },
+      snack:     { label: 'Berenar',  kcal: 330, carbs: 44, protein: 22, fat: 10,
+        items: ['Batut de recuperació (llet+proteïna)', 'Fruits secs mix 30g'] },
+      dinner:    { label: 'Sopar',    kcal: 860, carbs: 82, protein: 54, fat: 22,
+        items: ['Salmó teriyaki 220g', 'Arròs blanc 130g', 'Edamame', 'Gingebre ratllat'] },
+      total: 2750, targetKcal: 2750, status: 'ok',
+    },
+    // Diumenge — descans (dinar familiar)
+    {
+      breakfast: { label: 'Esmorzar', kcal: 460, carbs: 58, protein: 18, fat: 12,
+        items: ['Crepes de fajol x3', 'Fruits vermells', 'Formatge fresc desnatat', 'Mel'] },
+      lunch:     { label: 'Dinar',    kcal: 820, carbs: 88, protein: 44, fat: 22,
+        items: ['Llom de porc al forn 200g', 'Patates rostides', 'Pebrots confitats', 'AOVE'] },
+      snack:     { label: 'Berenar',  kcal: 230, carbs: 26, protein: 6, fat: 12,
+        items: ['Pinya fresca', 'Nous de Brasil 20g', 'Xocolata negra 85% 20g'] },
+      dinner:    { label: 'Sopar',    kcal: 590, carbs: 56, protein: 36, fat: 16,
+        items: ['Ou poché x2', 'Espinacs a la catalana', 'Cigrons 100g', 'Torrades integrals'] },
+      total: 2100, targetKcal: 2100, status: 'ok',
+    },
+  ]
 }
 
 export const useWeekStore = defineStore('week', () => {
@@ -93,16 +174,17 @@ export const useWeekStore = defineStore('week', () => {
 
   function checkLoadAndUpdateMeals(dayIndex) {
     const daySessions = sessionsByDay.value[dayIndex] || []
-    const totalKcal = daySessions.reduce((sum, s) => sum + s.kcal, 0)
-    const isHighLoad = daySessions.some(s => s.load === 'high') || totalKcal > 900
+    const sessionKcal = daySessions.reduce((sum, s) => sum + s.kcal, 0)
+    const isHighLoad = daySessions.some(s => s.load === 'high') || sessionKcal > 800
 
     const meal = meals.value[dayIndex]
+    const base = DAY_BASE_TARGETS[dayIndex] ?? 2200
     if (isHighLoad) {
-      meal.targetKcal = Math.round(meal.total * 1.15)
-      meal.status = 'warning'
+      meal.targetKcal = Math.round(base * 1.12)
+      meal.status = meal.total >= meal.targetKcal * 0.95 ? 'ok' : 'warning'
     } else {
-      meal.targetKcal = 2000
-      meal.status = 'ok'
+      meal.targetKcal = base
+      meal.status = meal.total >= base * 0.95 ? 'ok' : 'warning'
     }
   }
 

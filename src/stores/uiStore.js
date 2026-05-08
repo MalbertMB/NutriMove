@@ -109,6 +109,20 @@ export const useUIStore = defineStore("ui", () => {
 		aiDrawerContext.value = null;
 	}
 
+	// Add session panel (click on calendar)
+	const addPanelOpen = ref(false);
+	const addPanelContext = ref(null); // { dayIndex, startTime }
+
+	function openAddPanel(dayIndex, startTime) {
+		addPanelContext.value = { dayIndex, startTime };
+		addPanelOpen.value = true;
+	}
+
+	function closeAddPanel() {
+		addPanelOpen.value = false;
+		addPanelContext.value = null;
+	}
+
 	// Library panel (drag source - Task 2)
 	const libraryOpen = ref(true);
 
@@ -149,5 +163,9 @@ export const useUIStore = defineStore("ui", () => {
 		keyboardPlacementSessionType,
 		startKeyboardSessionPlacement,
 		cancelKeyboardSessionPlacement,
+		addPanelOpen,
+		addPanelContext,
+		openAddPanel,
+		closeAddPanel,
 	};
 });

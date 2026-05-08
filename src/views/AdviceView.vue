@@ -1,12 +1,6 @@
 <template>
   <div class="advice-view">
     <AppTopBar title="Consells" subtitle="Recomanacions personalitzades de l'Assistent NutriMove" />
-    <SectionNav
-      :items="[
-        { label: 'Notificació predictiva', target: 'predictive-tips', icon: 'notifications_active' },
-        { label: 'Historial de consells', target: 'advice-history', icon: 'history' }
-      ]"
-    />
     <div class="advice-content">
       <div id="predictive-tips" class="advice-list" tabindex="-1">
         <div
@@ -59,7 +53,6 @@
 <script setup>
 import { computed, ref } from 'vue'
 import AppTopBar from '@/components/layout/AppTopBar.vue'
-import SectionNav from '@/components/ui/SectionNav.vue'
 import { useWeekStore } from '@/stores/weekStore'
 import { useUIStore } from '@/stores/uiStore'
 

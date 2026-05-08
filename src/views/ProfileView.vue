@@ -1,14 +1,6 @@
 <template>
   <div class="profile-view">
     <AppTopBar title="Jo" subtitle="Les meves dades i preferències" />
-    <SectionNav
-      :items="[
-        { label: 'Dades personals', target: 'profile-data', icon: 'badge' },
-        { label: 'Preferències i objectius', target: 'profile-settings', icon: 'tune' },
-        { label: 'Objectiu personal', target: 'profile-goal', icon: 'target' }
-      ]"
-    />
-
     <div class="profile-content">
       <!-- Profile hero -->
       <div class="profile-hero">
@@ -86,7 +78,6 @@
 <script setup>
 import { reactive, ref } from 'vue'
 import AppTopBar from '@/components/layout/AppTopBar.vue'
-import SectionNav from '@/components/ui/SectionNav.vue'
 
 const personalData = [
   { label: 'Edat', value: '35 anys' },
