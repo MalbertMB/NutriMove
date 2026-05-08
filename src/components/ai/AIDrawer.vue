@@ -64,12 +64,33 @@
               <div class="col-header">
                 <span class="material-symbols-rounded">tune</span>
                 Ajustos suggerits
+                <span class="col-header__count">{{ selectedIds.size }}/{{ ctx.adjustments?.length ?? 0 }}</span>
               </div>
               <ul class="adjustments-list">
-                <li v-for="adj in ctx.adjustments" :key="adj.day" class="adj-item">
-                  <div class="adj-item__day">{{ adj.day }}</div>
-                  <div class="adj-item__detail">
+                <li
+                  v-for="adj in ctx.adjustments"
+                  :key="adj.id"
+                  class="adj-item"
+                  :class="{ 'adj-item--selected': selectedIds.has(adj.id) }"
+                  @click="toggleAdj(adj.id)"
+                >
+                  <label class="adj-item__check" @click.stop>
+                    <input
+                      type="checkbox"
+                      :checked="selectedIds.has(adj.id)"
+                      @change="toggleAdj(adj.id)"
+                    />
+                  </label>
+                  <div class="adj-item__content">
+                    <div class="adj-item__top">
+                      <span class="phase-badge" :class="`phase-badge--${adj.phase}`">
+                        {{ phaseLabels[adj.phase] }}
+                      </span>
+                      <span class="adj-item__day">{{ adj.day }}</span>
+                      <span class="adj-item__meal">· {{ adj.mealLabel }}</span>
+                    </div>
                     <span class="adj-item__label">{{ adj.label }}</span>
+                    <span class="adj-item__food">{{ adj.detail }}</span>
                     <span class="adj-item__delta">{{ adj.delta }}</span>
                   </div>
                 </li>
@@ -84,20 +105,20 @@
               </div>
               <div class="action-area">
                 <p class="action-desc">
-                  Aplica tots els ajustos nutricionals recomanats per cobrir la càrrega d'entrenament d'aquesta setmana.
+                  Selecciona els ajustos que vols aplicar o usa "Aplica tot" per acceptar totes les recomanacions.
                 </p>
                 <div class="action-preview">
                   <div class="preview-item">
                     <span class="material-symbols-rounded icon-fill" style="color:var(--accent)">check_circle</span>
-                    Nutrició ajustada {{ ctx.daysAffected || 3 }} dies
+                    {{ selectedCount }} ajust{{ selectedCount !== 1 ? 'os' : '' }} seleccionat{{ selectedCount !== 1 ? 's' : '' }}
+                  </div>
+                  <div class="preview-item">
+                    <span class="material-symbols-rounded icon-fill" style="color:var(--accent)">local_fire_department</span>
+                    +{{ totalExtraKcal }} kcal distribuïdes
                   </div>
                   <div class="preview-item">
                     <span class="material-symbols-rounded icon-fill" style="color:var(--accent)">check_circle</span>
-                    Risc de fatiga eliminat
-                  </div>
-                  <div class="preview-item">
-                    <span class="material-symbols-rounded icon-fill" style="color:var(--accent)">check_circle</span>
-                    Calendari en verd
+                    Risc de fatiga reduït
                   </div>
                 </div>
               </div>
@@ -107,12 +128,16 @@
           <!-- Footer -->
           <div class="drawer__footer">
             <button class="btn btn--ghost" @click="uiStore.closeAIDrawer()">Ara no</button>
-            <button class="btn btn--secondary" @click="applyPartial">
-              Aplica parcialment
+            <button
+              class="btn btn--secondary"
+              :disabled="selectedIds.size === 0"
+              @click="applyPartial"
+            >
+              Aplica selecció ({{ selectedIds.size }})
             </button>
             <button class="btn btn--primary" @click="applyAll">
               <span class="material-symbols-rounded icon-fill">auto_awesome</span>
-              Aplica el bloc IA
+              Aplica tot ({{ ctx.adjustments?.length ?? 0 }})
             </button>
           </div>
         </div>
@@ -135,33 +160,62 @@ const closeBtnRef = ref(null)
 let lastFocusedElement = null
 
 const ctx = computed(() => uiStore.aiDrawerContext || {})
+const selectedIds = ref(new Set())
+
+const phaseLabels = { pre: 'Pre-sessió', training: 'Sessió', recovery: 'Recuperació' }
+
+const selectedCount = computed(() => selectedIds.value.size)
+const totalExtraKcal = computed(() =>
+  (ctx.value.adjustments ?? [])
+    .filter(a => selectedIds.value.has(a.id))
+    .reduce((sum, a) => sum + (a.extraKcal || 0), 0)
+)
 
 watch(() => uiStore.aiDrawerOpen, async (open) => {
   if (open) {
     lastFocusedElement = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    selectedIds.value = new Set(uiStore.aiDrawerContext?.adjustments?.map(a => a.id) ?? [])
     await nextTick()
     closeBtnRef.value?.focus()
     return
   }
-
   await nextTick()
   lastFocusedElement?.focus?.()
   lastFocusedElement = null
 })
 
+function toggleAdj(id) {
+  const next = new Set(selectedIds.value)
+  if (next.has(id)) next.delete(id)
+  else next.add(id)
+  selectedIds.value = next
+}
+
 function applyPartial() {
-  const c = uiStore.aiDrawerContext
-  if (c?.startDay !== undefined) {
-    weekStore.applyAIWeekAdjustment(c.startDay, c.startDay + 1)
+  const adjs = (uiStore.aiDrawerContext?.adjustments ?? []).filter(a => selectedIds.value.has(a.id))
+  for (const adj of adjs) {
+    weekStore.applyMealAdjustment(adj.dayIndex, {
+      mealSlot: adj.mealSlot,
+      extraKcal: adj.extraKcal,
+      extraCarbs: adj.extraCarbs,
+      extraProtein: adj.extraProtein,
+      item: adj.item
+    })
   }
   uiStore.closeAIDrawer()
-  uiStore.showToast('Ajust parcial aplicat. Reviseu el calendari.', 'info')
+  uiStore.showToast(`${adjs.length} ajust${adjs.length !== 1 ? 'os aplicats' : ' aplicat'}. Reviseu el calendari.`, 'info')
 }
 
 function applyAll() {
-  const c = uiStore.aiDrawerContext
-  if (c?.startDay !== undefined && c?.endDay !== undefined) {
-    weekStore.applyAIWeekAdjustment(c.startDay, c.endDay)
+  const adjs = uiStore.aiDrawerContext?.adjustments ?? []
+  for (const adj of adjs) {
+    weekStore.applyMealAdjustment(adj.dayIndex, {
+      mealSlot: adj.mealSlot,
+      extraKcal: adj.extraKcal,
+      extraCarbs: adj.extraCarbs,
+      extraProtein: adj.extraProtein,
+      item: adj.item
+    })
   }
   uiStore.closeAIDrawer()
   uiStore.showToast('Fet! Setmana planificada. Nutrició coberta per a totes les sessions.', 'success', 4500)
@@ -271,6 +325,15 @@ function applyAll() {
   letter-spacing: 0.5px;
 }
 .col-header .material-symbols-rounded { font-size: 16px; color: var(--accent); }
+.col-header__count {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-3);
+  background: var(--surface-2);
+  padding: 2px 7px;
+  border-radius: 99px;
+}
 
 /* Analysis */
 .analysis-card {
@@ -287,8 +350,9 @@ function applyAll() {
 .stat-value--warn { color: var(--warning); }
 .analysis-text { font-size: 13px; color: var(--text-2); line-height: 1.6; }
 
-/* Adjustments */
-.adjustments-list { display: flex; flex-direction: column; gap: 8px; }
+/* Adjustments list */
+.adjustments-list { display: flex; flex-direction: column; gap: 6px; }
+
 .adj-item {
   display: flex;
   align-items: flex-start;
@@ -296,20 +360,68 @@ function applyAll() {
   padding: 10px;
   background: var(--surface-2);
   border-radius: var(--radius-md);
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: opacity var(--dur-fast), background var(--dur-fast), border-color var(--dur-fast);
 }
-.adj-item__day {
-  font-size: 11px;
+.adj-item:not(.adj-item--selected) { opacity: 0.5; }
+.adj-item:hover { opacity: 1; }
+.adj-item--selected {
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface-2));
+  border-color: rgba(0, 200, 150, 0.25);
+}
+
+/* Checkbox */
+.adj-item__check {
+  display: flex;
+  align-items: flex-start;
+  padding-top: 3px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.adj-item__check input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+/* Content */
+.adj-item__content {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+
+.adj-item__top {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+/* Phase badges */
+.phase-badge {
+  font-size: 10px;
   font-weight: 700;
-  color: var(--accent-dark);
-  background: var(--accent-light);
-  padding: 3px 8px;
-  border-radius: var(--radius-xs);
+  padding: 2px 6px;
+  border-radius: 99px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
   white-space: nowrap;
   flex-shrink: 0;
 }
-.adj-item__detail { display: flex; flex-direction: column; gap: 2px; }
+.phase-badge--pre { background: var(--purple-light); color: var(--purple); }
+.phase-badge--training { background: var(--warning-light); color: var(--warning); }
+.phase-badge--recovery { background: var(--accent-light); color: var(--accent-dark); }
+
+.adj-item__day { font-size: 11px; font-weight: 600; color: var(--text-2); }
+.adj-item__meal { font-size: 11px; color: var(--text-3); }
 .adj-item__label { font-size: 12px; color: var(--text); font-weight: 500; }
-.adj-item__delta { font-size: 11px; color: var(--accent-dark); }
+.adj-item__food { font-size: 11px; color: var(--text-3); font-style: italic; }
+.adj-item__delta { font-size: 11px; color: var(--accent-dark); font-weight: 500; }
 
 /* Action */
 .action-area { display: flex; flex-direction: column; gap: 14px; }
@@ -344,10 +456,11 @@ function applyAll() {
 .btn--primary { background: var(--accent); color: var(--navy); }
 .btn--primary:hover { background: var(--accent-dark); transform: translateY(-1px); box-shadow: var(--shadow-accent); }
 .btn--secondary { background: var(--accent-light); color: var(--accent-dark); border: 1px solid rgba(0,200,150,0.25); }
-.btn--secondary:hover { background: color-mix(in srgb, var(--accent) 20%, transparent); }
+.btn--secondary:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 20%, transparent); }
 .btn--ghost { background: transparent; color: var(--text-2); border: 1px solid var(--border); }
 .btn--ghost:hover { background: var(--surface-2); }
 .btn .material-symbols-rounded { font-size: 16px; }
+.btn:disabled { opacity: 0.35; cursor: not-allowed; }
 
 /* Transitions */
 .slide-bottom-enter-active { animation: drawerIn 0.45s var(--ease) both; }

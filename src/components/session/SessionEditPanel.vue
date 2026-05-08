@@ -286,8 +286,13 @@ function applyChanges() {
   })
   uiStore.closeEditPanel()
 
-  // Trigger AI popover if intensity is high or duration > 180
   if (localIntensity.value === 'Alta' || localDuration.value >= 240) {
+    uiStore.addNotification({
+      type: 'warning',
+      icon: 'warning',
+      title: 'Càrrega alta detectada',
+      body: `${session.value.label} (${weekStore.daysFull[sessionSnapshot.day]}) té ${localIntensity.value === 'Alta' ? 'intensitat alta' : `durada de ${formatDuration(localDuration.value)}`}. Revisa la nutrició del dia.`,
+    })
     setTimeout(() => {
       uiStore.showAIPopover({
         sessionId: sessionSnapshot.id,

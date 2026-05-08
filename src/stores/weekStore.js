@@ -210,6 +210,32 @@ export const useWeekStore = defineStore('week', () => {
     }
   }
 
+  function addFoodToSlot(dayIndex, slot, { name, kcal = 0, carbs = 0, protein = 0, fat = 0 } = {}) {
+    const meal = meals.value[dayIndex]
+    if (!meal || !meal[slot]) return
+    const s = meal[slot]
+    s.kcal += kcal
+    s.carbs += carbs
+    s.protein += protein
+    s.fat += fat
+    if (name) s.items = [...s.items, name]
+    meal.total = meal.breakfast.kcal + meal.lunch.kcal + meal.snack.kcal + meal.dinner.kcal
+    checkLoadAndUpdateMeals(dayIndex)
+  }
+
+  function applyMealAdjustment(dayIndex, { mealSlot = 'dinner', extraKcal = 0, extraCarbs = 0, extraProtein = 0, item = null } = {}) {
+    const meal = meals.value[dayIndex]
+    if (!meal || !meal[mealSlot]) return
+    const slot = meal[mealSlot]
+    slot.kcal += extraKcal
+    slot.carbs += extraCarbs
+    slot.protein += extraProtein
+    if (item) slot.items = [...slot.items, item]
+    meal.total = meal.breakfast.kcal + meal.lunch.kcal + meal.snack.kcal + meal.dinner.kcal
+    meal.status = 'ok'
+    meal.aiAdjusted = true
+  }
+
   function getSessionById(id) {
     return sessions.value.find(s => s.id === id)
   }
@@ -225,7 +251,8 @@ export const useWeekStore = defineStore('week', () => {
     sessions, meals, days, daysFull, sessionTypes,
     sessionsByDay,
     addSession, updateSession, removeSession,
-    applyAIMealAdjustment, applyAIWeekAdjustment,
+    addFoodToSlot,
+    applyAIMealAdjustment, applyAIWeekAdjustment, applyMealAdjustment,
     getSessionById, getWeekTotals
   }
 })

@@ -151,20 +151,74 @@ function handleAddFromLibrary({ type, day }) {
 
 function openWeekAIDrawer() {
   const highDays = highLoadDaysList.value
-  const startDay = Math.max(0, Math.min(...highDays) - 1)
-  const endDay = Math.max(...highDays)
+  const seenSlots = new Set()
+  const adjustments = []
+
+  for (const d of highDays) {
+    if (d > 0) {
+      const kL = `${d - 1}-lunch`
+      if (!seenSlots.has(kL)) {
+        seenSlots.add(kL)
+        adjustments.push({
+          id: `pre-${d}-lunch`, dayIndex: d - 1, day: weekStore.daysFull[d - 1],
+          phase: 'pre', mealSlot: 'lunch', mealLabel: 'Dinar',
+          label: 'Dinar de càrrega', detail: 'Arròs integral + llegums', delta: '+250 kcal · +45g hidrats',
+          extraKcal: 250, extraCarbs: 45, extraProtein: 0, item: 'Arròs integral (extra)'
+        })
+      }
+      const kD = `${d - 1}-dinner`
+      if (!seenSlots.has(kD)) {
+        seenSlots.add(kD)
+        adjustments.push({
+          id: `pre-${d}-dinner`, dayIndex: d - 1, day: weekStore.daysFull[d - 1],
+          phase: 'pre', mealSlot: 'dinner', mealLabel: 'Sopar',
+          label: 'Sopar de càrrega', detail: 'Pasta integral + salsa de tomàquet', delta: '+300 kcal · +50g hidrats',
+          extraKcal: 300, extraCarbs: 50, extraProtein: 0, item: 'Pasta de càrrega'
+        })
+      }
+    }
+
+    const kB = `${d}-breakfast`
+    if (!seenSlots.has(kB)) {
+      seenSlots.add(kB)
+      adjustments.push({
+        id: `training-${d}-breakfast`, dayIndex: d, day: weekStore.daysFull[d],
+        phase: 'training', mealSlot: 'breakfast', mealLabel: 'Esmorzar',
+        label: 'Esmorzar reforçat', detail: 'Civada + mel + plàtan madur', delta: '+200 kcal · +35g hidrats',
+        extraKcal: 200, extraCarbs: 35, extraProtein: 0, item: 'Civada reforçada'
+      })
+    }
+    const kS = `${d}-snack`
+    if (!seenSlots.has(kS)) {
+      seenSlots.add(kS)
+      adjustments.push({
+        id: `training-${d}-snack`, dayIndex: d, day: weekStore.daysFull[d],
+        phase: 'training', mealSlot: 'snack', mealLabel: 'Berenar',
+        label: 'Berenar pre-sessió', detail: 'Plàtan + barreta energètica', delta: '+180 kcal · +25g hidrats',
+        extraKcal: 180, extraCarbs: 25, extraProtein: 0, item: 'Berenar energètic'
+      })
+    }
+
+    if (d < 6) {
+      const kR = `${d + 1}-dinner`
+      if (!seenSlots.has(kR)) {
+        seenSlots.add(kR)
+        adjustments.push({
+          id: `recovery-${d}-dinner`, dayIndex: d + 1, day: weekStore.daysFull[d + 1],
+          phase: 'recovery', mealSlot: 'dinner', mealLabel: 'Sopar',
+          label: 'Sopar de recuperació', detail: 'Peix blau + quinoa + verdures', delta: '+200 kcal · +30g proteïna',
+          extraKcal: 200, extraCarbs: 0, extraProtein: 30, item: 'Proteïna de recuperació'
+        })
+      }
+    }
+  }
 
   uiStore.showAIDrawer({
     day: highDays.map(d => weekStore.daysFull[d]).join(', '),
     totalKcal: highDays.reduce((s, d) => s + (weekStore.sessionsByDay[d] || []).reduce((ss, sess) => ss + sess.kcal, 0), 0),
     analysis: `La setmana planificada inclou ${highDays.length} dia${highDays.length > 1 ? 'es' : ''} de càrrega alta. El desgast acumulat pot causar fatiga i reduir el rendiment si no s'ajusta la ingesta calòrica dels dies previs.`,
-    adjustments: highDays.flatMap(d => [
-      d > 0 ? { day: weekStore.daysFull[d - 1], label: 'Augmentar dinar i sopar', delta: '+15% kcal · +30g hidrats' } : null,
-      { day: weekStore.daysFull[d], label: 'Esmorzar reforçat', delta: '+200 kcal · hidrats ràpids' }
-    ]).filter(Boolean),
-    startDay,
-    endDay,
-    daysAffected: highDays.length * 2
+    adjustments,
+    daysAffected: adjustments.length
   })
 }
 
@@ -181,7 +235,7 @@ function handleSave() {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 16px;
-  padding: 20px 24px 0;
+  padding: 8px 24px 0;
   flex-shrink: 0;
 }
 
