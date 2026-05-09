@@ -4,6 +4,17 @@
 
     <div class="meals-content">
       <div class="week-nav">
+        <button
+          class="week-nav__today"
+          :class="{ 'week-nav__today--disabled': weekStore.weekOffset === 0 }"
+          :disabled="weekStore.weekOffset === 0"
+          @click="weekStore.goToCurrentWeek()"
+          :aria-label="weekStore.weekOffset === 0 ? 'Ja ets a la setmana actual' : 'Tornar a la setmana actual'"
+          :title="weekStore.weekOffset === 0 ? 'Ja ets a la setmana actual' : 'Tornar a la setmana actual'"
+        >
+          <span class="material-symbols-rounded">today</span>
+          Avui
+        </button>
         <button class="week-nav__btn" @click="weekStore.prevWeek()" aria-label="Setmana anterior">
           <span class="material-symbols-rounded">chevron_left</span>
         </button>
@@ -178,6 +189,40 @@ function miniMacros(meal) {
   font-size: 11px; font-weight: 600;
   padding: 2px 8px; border-radius: 99px;
   background: var(--accent-light); color: var(--accent-dark);
+}
+
+/* "Avui" pill — left of the prev arrow, disabled when already on current week */
+.week-nav__today {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: var(--radius-md);
+  background: var(--accent);
+  color: var(--navy);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--dur-fast), color var(--dur-fast),
+              box-shadow var(--dur-fast), transform var(--dur-fast);
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+.week-nav__today:hover {
+  background: var(--accent-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+.week-nav__today .material-symbols-rounded { font-size: 16px; }
+
+.week-nav__today--disabled,
+.week-nav__today--disabled:hover {
+  background: var(--surface-3, var(--surface-2));
+  color: var(--text-3);
+  box-shadow: none;
+  cursor: not-allowed;
+  transform: none;
 }
 
 /* 7-day grid */

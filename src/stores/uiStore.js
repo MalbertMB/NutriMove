@@ -174,15 +174,27 @@ export const useUIStore = defineStore("ui", () => {
 	// Library panel (drag source - Task 2)
 	const libraryOpen = ref(true);
 
-	// Keyboard fallback for session placement
-	const keyboardPlacementSessionType = ref(null);
+	// User preference: show advanced metrics on Sessions page
+	const advancedMetrics = ref(false);
+	function setAdvancedMetrics(v) { advancedMetrics.value = !!v; }
 
-	function startKeyboardSessionPlacement(type) {
-		keyboardPlacementSessionType.value = type;
+	// Advice page state — persists across navigations
+	const adviceIgnoredTips = ref([]);
+	const adviceHistory = ref([]);
+
+	function ignoreAdviceTip(tipId) {
+		if (!adviceIgnoredTips.value.includes(tipId)) {
+			adviceIgnoredTips.value = [...adviceIgnoredTips.value, tipId];
+		}
 	}
 
-	function cancelKeyboardSessionPlacement() {
-		keyboardPlacementSessionType.value = null;
+	function addAdviceHistoryEntry(label, status) {
+		adviceHistory.value.unshift({
+			id: Date.now() + Math.random(),
+			label,
+			date: new Intl.DateTimeFormat('ca-ES', { day: 'numeric', month: 'short' }).format(new Date()),
+			status,
+		});
 	}
 
 	return {
@@ -216,9 +228,6 @@ export const useUIStore = defineStore("ui", () => {
 		toggleNotifPanel,
 		closeNotifPanel,
 		libraryOpen,
-		keyboardPlacementSessionType,
-		startKeyboardSessionPlacement,
-		cancelKeyboardSessionPlacement,
 		addPanelOpen,
 		addPanelContext,
 		openAddPanel,
@@ -227,5 +236,11 @@ export const useUIStore = defineStore("ui", () => {
 		mealPanelDayIndex,
 		openMealPanel,
 		closeMealPanel,
+		adviceIgnoredTips,
+		adviceHistory,
+		ignoreAdviceTip,
+		addAdviceHistoryEntry,
+		advancedMetrics,
+		setAdvancedMetrics,
 	};
 });

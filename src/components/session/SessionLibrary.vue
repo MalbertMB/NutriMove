@@ -9,44 +9,30 @@
 
     <div class="library__body">
       <p class="library__hint">
-        Pots arrossegar una sessió o seleccionar-la amb teclat i després col·locar-la en un dia del calendari.
+        Arrossega una sessió a un dia del calendari per afegir-la.
       </p>
       <div class="library__list">
         <div
           v-for="(typeData, key) in sessionTypes"
           :key="key"
           class="lib-card"
-          :class="{ 'lib-card--selected': isSelected(key) }"
           :style="{ '--card-color': typeData.color }"
           draggable="true"
           @dragstart="handleDragStart(key, $event)"
           @dragend="handleDragEnd"
-          @click="handleKeyboardSelect(key)"
-          @keydown.enter.prevent="handleKeyboardSelect(key)"
-          @keydown.space.prevent="handleKeyboardSelect(key)"
           :aria-label="`${typeData.label} – Arrossega per afegir al calendari`"
-          role="button"
-          tabindex="0"
-          :aria-pressed="isSelected(key)"
-          :aria-grabbed="isSelected(key)"
         >
           <div class="lib-card__bar" aria-hidden="true"></div>
-          
+
           <div class="lib-card__icon">
             <span class="material-symbols-rounded">{{ typeData.icon }}</span>
           </div>
-          
+
           <div class="lib-card__content">
             <span class="lib-card__title">{{ typeData.label }}</span>
             <span class="lib-card__duration">60 min</span>
           </div>
         </div>
-      </div>
-
-      <div v-if="uiStore.keyboardPlacementSessionType" class="library__keyboard-state">
-        <span class="library__keyboard-state-label">Sessió seleccionada</span>
-        <strong>{{ sessionTypes[uiStore.keyboardPlacementSessionType].label }}</strong>
-        <button class="library__clear" @click="uiStore.cancelKeyboardSessionPlacement()">Cancel·la</button>
       </div>
 
       <!-- New activity form -->
@@ -174,20 +160,6 @@ function handleDragStart(type, event) {
 }
 
 function handleDragEnd() {}
-
-function handleKeyboardSelect(type) {
-  if (uiStore.keyboardPlacementSessionType === type) {
-    uiStore.cancelKeyboardSessionPlacement()
-    uiStore.showToast('Selecció de sessió cancel·lada.', 'info')
-    return
-  }
-  uiStore.startKeyboardSessionPlacement(type)
-  uiStore.showToast(`Seleccionada ${sessionTypes[type].label}. Tria un dia del calendari i prem Enter.`, 'info')
-}
-
-function isSelected(type) {
-  return uiStore.keyboardPlacementSessionType === type
-}
 </script>
 
 <style scoped>
@@ -273,12 +245,6 @@ function isSelected(type) {
   transform: translateY(-2px);
 }
 
-.lib-card--selected {
-  border-color: var(--accent);
-  background: var(--accent-light);
-  box-shadow: 0 4px 16px color-mix(in srgb, var(--accent) 20%, transparent);
-}
-
 .lib-card:focus-visible {
   outline: 2px solid var(--card-color);
   outline-offset: 2px;
@@ -331,31 +297,6 @@ function isSelected(type) {
   display: block;
   font-size: 11px;
   color: var(--text-3);
-}
-
-.library__keyboard-state {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
-  border-radius: var(--radius-md);
-  background: var(--surface-2);
-  font-size: 12px;
-  color: var(--text-2);
-}
-
-.library__keyboard-state-label {
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  font-weight: 700;
-  color: var(--text-3);
-}
-
-.library__clear {
-  margin-left: auto;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--accent-dark);
 }
 
 /* Add activity button */

@@ -70,6 +70,33 @@
             </div>
           </div>
         </div>
+
+        <!-- Display mode -->
+        <div id="profile-display" class="profile-section" tabindex="-1">
+          <h3 class="profile-section__title">Mode visualització</h3>
+          <div class="toggle-list">
+            <div class="toggle-row">
+              <div class="toggle-row__body">
+                <span class="toggle-row__label">
+                  Mètriques avançades
+                  <span class="badge-pro">PRO</span>
+                </span>
+                <span class="toggle-row__desc">
+                  Activa una secció extra a la pantalla de Sessions amb TSS, polarització 80/20, zones FC, densitat d'entrenament i risc de sobreentrenament.
+                </span>
+              </div>
+              <button
+                class="toggle-btn"
+                :class="{ 'toggle-btn--on': uiStore.advancedMetrics }"
+                @click="uiStore.setAdvancedMetrics(!uiStore.advancedMetrics)"
+                :aria-pressed="uiStore.advancedMetrics"
+                :aria-label="`${uiStore.advancedMetrics ? 'Desactivar' : 'Activar'} mètriques avançades`"
+              >
+                <span class="toggle-btn__dot"></span>
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -78,6 +105,9 @@
 <script setup>
 import { reactive, ref } from 'vue'
 import AppTopBar from '@/components/layout/AppTopBar.vue'
+import { useUIStore } from '@/stores/uiStore'
+
+const uiStore = useUIStore()
 
 const personalData = [
   { label: 'Edat', value: '35 anys' },
@@ -164,7 +194,17 @@ const prefs = reactive([
 .toggle-list { display: flex; flex-direction: column; gap: 16px; }
 .toggle-row { display: flex; align-items: center; gap: 12px; }
 .toggle-row__body { flex: 1; }
-.toggle-row__label { display: block; font-size: 13px; font-weight: 500; color: var(--text); }
+.toggle-row__label { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; color: var(--text); }
+.badge-pro {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  padding: 2px 6px;
+  border-radius: 99px;
+  background: linear-gradient(135deg, var(--navy), var(--navy-2));
+  color: var(--accent);
+  text-transform: uppercase;
+}
 .toggle-row__desc { font-size: 11px; color: var(--text-3); margin-top: 1px; display: block; }
 
 .toggle-btn {

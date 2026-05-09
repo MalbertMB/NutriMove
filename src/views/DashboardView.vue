@@ -5,8 +5,10 @@
       title="Inici"
       :show-week-nav="true"
       :week-label="weekStore.currentWeekLabel"
+      :is-current-week="weekStore.weekOffset === 0"
       @prev-week="weekStore.prevWeek()"
       @next-week="weekStore.nextWeek()"
+      @today="weekStore.goToCurrentWeek()"
     />
 
     <!-- KPI strip -->
@@ -83,16 +85,22 @@
 
 <script setup>
 import { computed } from 'vue'
+
 import AppTopBar from '@/components/layout/AppTopBar.vue'
+
 import WeekCalendar from '@/components/dashboard/WeekCalendar.vue'
-import SessionLibrary from '@/components/session/SessionLibrary.vue'
 import StatCard from '@/components/dashboard/StatCard.vue'
+
+import SessionLibrary from '@/components/session/SessionLibrary.vue'
 import SessionPreviewCard from '@/components/session/SessionPreviewCard.vue'
 import SessionEditPanel from '@/components/session/SessionEditPanel.vue'
 import SessionAddPanel from '@/components/session/SessionAddPanel.vue'
+
 import MealDetailPanel from '@/components/meal/MealDetailPanel.vue'
+
 import AIPopover from '@/components/ai/AIPopover.vue'
 import AIDrawer from '@/components/ai/AIDrawer.vue'
+
 import { useWeekStore } from '@/stores/weekStore'
 import { useUIStore } from '@/stores/uiStore'
 

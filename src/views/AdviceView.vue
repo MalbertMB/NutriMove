@@ -1,6 +1,15 @@
 <template>
   <div class="advice-view">
-    <AppTopBar title="Consells" subtitle="Recomanacions personalitzades de l'Assistent NutriMove" />
+    <AppTopBar
+      title="Consells"
+      subtitle="Recomanacions personalitzades de l'Assistent NutriMove"
+      :show-week-nav="true"
+      :week-label="weekStore.currentWeekLabel"
+      :is-current-week="weekStore.weekOffset === 0"
+      @prev-week="weekStore.prevWeek()"
+      @next-week="weekStore.nextWeek()"
+      @today="weekStore.goToCurrentWeek()"
+    />
     <div class="advice-content">
       <div id="predictive-tips" class="advice-list" tabindex="-1">
         <div
@@ -25,6 +34,20 @@
           </div>
           <h3 class="tip-title">{{ tip.title }}</h3>
           <p class="tip-body">{{ tip.body }}</p>
+
+          <!-- Trigger sessions (high-load) -->
+          <div v-if="tip.triggerSessions?.length" class="tip-sessions">
+            <div class="tip-sessions__header">
+              <span class="material-symbols-rounded">fitness_center</span>
+              {{ tip.triggerSessions.length === 1 ? 'Sessió detonant' : 'Sessions detonants' }}
+            </div>
+            <div v-for="s in tip.triggerSessions" :key="s.id" class="tip-session-row">
+              <span class="tip-session__day">{{ s.day }}</span>
+              <span class="tip-adj__sep">·</span>
+              <span class="tip-session__label">{{ s.label }}</span>
+              <span class="tip-session__kcal">{{ s.kcal }} kcal · {{ s.intensity }}</span>
+            </div>
+          </div>
 
           <!-- Adjustments preview -->
           <div v-if="tip.adjustments?.length" class="tip-adjustments">
@@ -54,8 +77,11 @@
       <!-- History sidebar -->
       <aside id="advice-history" class="advice-history" tabindex="-1">
         <h3 class="history-title">Historial de consells</h3>
-        <div class="history-list">
-          <div v-for="h in history" :key="h.id" class="history-item">
+        <div v-if="!uiStore.adviceHistory.length" class="history-empty">
+          Encara no has aplicat ni ignorat cap consell.
+        </div>
+        <div v-else class="history-list">
+          <div v-for="h in uiStore.adviceHistory" :key="h.id" class="history-item">
             <div class="history-item__dot" :class="`dot--${h.status}`"></div>
             <div class="history-item__body">
               <span class="history-item__label">{{ h.label }}</span>
@@ -70,19 +96,19 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import AppTopBar from '@/components/layout/AppTopBar.vue'
 import { useWeekStore } from '@/stores/weekStore'
 import { useUIStore } from '@/stores/uiStore'
 
 const weekStore = useWeekStore()
 const uiStore = useUIStore()
-const ignoredTips = ref([])
-const history = ref([])
 
 const phaseLabels = { pre: 'Pre-sessió', training: 'Sessió', recovery: 'Recuperació' }
 
-function generateAdjustments(highDays) {
+// Adjustments tailored to a list of high-load training days:
+// pre-load on the previous day, fueling on the day itself, recovery on the next.
+function generateHighLoadAdjustments(highDays) {
   const seenSlots = new Set()
   const adjustments = []
   for (const d of highDays) {
@@ -144,47 +170,108 @@ function generateAdjustments(highDays) {
   return adjustments
 }
 
+// Adjustment for days that are simply under the kcal target (no high-load
+// sessions). Plain "increase intake" — no pre/training/recovery framing.
+function generateLowKcalAdjustments(day) {
+  return [{
+    id: `lowkcal-${day}-snack`,
+    dayIndex: day,
+    day: weekStore.daysFull[day],
+    phase: null,
+    mealSlot: 'snack',
+    mealLabel: 'Berenar',
+    label: 'Berenar reforçat',
+    detail: 'Iogurt grec + fruits secs + fruita',
+    delta: '+220 kcal · +18g proteïna',
+    extraKcal: 220, extraCarbs: 18, extraProtein: 18, item: 'Berenar complet'
+  }]
+}
+
 const tips = computed(() => {
   const list = []
+  const offset = weekStore.weekOffset
+  const sessionsByDay = weekStore.sessionsByDay
+
   const warningDays = weekStore.meals
     .map((meal, day) => ({ meal, day }))
     .filter(({ meal }) => meal.status === 'warning')
 
+  // Per-day tips — different copy/adjustments depending on whether the day
+  // actually has high-load sessions or is just under-fed.
   warningDays.slice(0, 3).forEach(({ day }) => {
-    const adjustments = generateAdjustments([day])
-    list.push({
-      id: `meal-${day}`,
-      type: 'nutrition',
-      icon: 'restaurant',
-      tag: 'Nutrició',
-      title: `Planificació nutricional per ${weekStore.daysFull[day]}`,
-      body: `Dia de càrrega alta detectat. Es proposen ${adjustments.length} ajustos als àpats del dia i dels dies adjacents per optimitzar el rendiment i la recuperació.`,
-      action: 'apply-day',
-      day,
-      adjustments
-    })
+    const dayHighLoad = (sessionsByDay[day] || []).filter(s => s.load === 'high')
+    const isHighLoadDay = dayHighLoad.length > 0
+
+    if (isHighLoadDay) {
+      const adjustments = generateHighLoadAdjustments([day])
+      list.push({
+        id: `meal-w${offset}-d${day}`,
+        type: 'nutrition',
+        icon: 'restaurant',
+        tag: 'Càrrega alta',
+        title: `Planificació nutricional per ${weekStore.daysFull[day]}`,
+        body: `Dia de càrrega alta detectat. Es proposen ${adjustments.length} ajustos als àpats del dia i dels dies adjacents per optimitzar el rendiment i la recuperació.`,
+        action: 'apply-day',
+        day,
+        adjustments,
+        triggerSessions: dayHighLoad.map(s => ({
+          id: s.id,
+          day: weekStore.daysFull[day],
+          label: s.label,
+          kcal: s.kcal,
+          intensity: s.intensity,
+        })),
+      })
+    } else {
+      const adjustments = generateLowKcalAdjustments(day)
+      list.push({
+        id: `meal-w${offset}-d${day}`,
+        type: 'nutrition',
+        icon: 'restaurant',
+        tag: 'Ingesta baixa',
+        title: `Ingesta insuficient ${weekStore.daysFull[day]}`,
+        body: `La ingesta planificada queda per sota de l'objectiu calòric del dia. Es proposa reforçar un àpat per cobrir el dèficit.`,
+        action: 'apply-day',
+        day,
+        adjustments,
+      })
+    }
   })
 
-  if (warningDays.length >= 2) {
-    const days = warningDays.map(({ day }) => day)
-    const adjustments = generateAdjustments(days)
+  // Week-level tip — only when ≥2 high-load days (not generic warning days).
+  const highLoadWarningDays = warningDays
+    .filter(({ day }) => (sessionsByDay[day] || []).some(s => s.load === 'high'))
+    .map(({ day }) => day)
+
+  if (highLoadWarningDays.length >= 2) {
+    const adjustments = generateHighLoadAdjustments(highLoadWarningDays)
+    const triggerSessions = highLoadWarningDays.flatMap(d =>
+      (sessionsByDay[d] || []).filter(s => s.load === 'high').map(s => ({
+        id: s.id,
+        day: weekStore.daysFull[d],
+        label: s.label,
+        kcal: s.kcal,
+        intensity: s.intensity,
+      }))
+    )
     list.push({
-      id: 'week-adjust',
+      id: `week-adjust-w${offset}`,
       type: 'recovery',
       icon: 'auto_awesome',
       tag: 'Planificació',
       title: 'Ajust nutricional per tota la setmana intensa',
-      body: `S'han detectat ${warningDays.length} dies de càrrega alta. Es proposen ${adjustments.length} ajustos distribuïts per pre-càrrega, sessió i recuperació.`,
+      body: `S'han detectat ${highLoadWarningDays.length} dies de càrrega alta. Es proposen ${adjustments.length} ajustos distribuïts per pre-càrrega, sessió i recuperació.`,
       action: 'apply-week',
-      startDay: Math.min(...days),
-      endDay: Math.max(...days),
-      adjustments
+      startDay: Math.min(...highLoadWarningDays),
+      endDay: Math.max(...highLoadWarningDays),
+      adjustments,
+      triggerSessions,
     })
   }
 
   if (!list.length) {
     list.push({
-      id: 'stable-week',
+      id: `stable-week-w${offset}`,
       type: 'performance',
       icon: 'check_circle',
       tag: 'Rendiment',
@@ -194,55 +281,40 @@ const tips = computed(() => {
     })
   }
 
-  return list.filter(t => !ignoredTips.value.includes(t.id))
+  return list.filter(t => !uiStore.adviceIgnoredTips.includes(t.id))
 })
 
 function applyTip(tip) {
-  if (tip.action === 'apply-day' || tip.action === 'apply-week') {
-    for (const adj of tip.adjustments ?? []) {
-      weekStore.applyMealAdjustment(adj.dayIndex, {
-        mealSlot: adj.mealSlot,
-        extraKcal: adj.extraKcal,
-        extraCarbs: adj.extraCarbs,
-        extraProtein: adj.extraProtein,
-        item: adj.item
-      })
-    }
-    const n = tip.adjustments?.length ?? 0
-    const label = tip.action === 'apply-day'
-      ? `${n} ajust${n !== 1 ? 'os aplicats' : ' aplicat'} a ${weekStore.daysFull[tip.day]}.`
-      : `${n} ajust${n !== 1 ? 'os aplicats' : ' aplicat'} a tota la setmana.`
-    uiStore.showToast(label, 'success')
-    addHistory(
-      tip.action === 'apply-day'
-        ? `Ajust diari: ${weekStore.daysFull[tip.day]}`
-        : 'Ajust nutricional setmanal',
-      'applied'
-    )
-  } else {
-    uiStore.showToast('No cal aplicar canvis addicionals.', 'info')
-    addHistory('Consell de manteniment revisat', 'applied')
+  if (tip.action !== 'apply-day' && tip.action !== 'apply-week') return
+
+  for (const adj of tip.adjustments ?? []) {
+    weekStore.applyMealAdjustment(adj.dayIndex, {
+      mealSlot: adj.mealSlot,
+      extraKcal: adj.extraKcal,
+      extraCarbs: adj.extraCarbs,
+      extraProtein: adj.extraProtein,
+      item: adj.item,
+      phase: adj.phase,
+    })
   }
-  ignoredTips.value = [...ignoredTips.value, tip.id]
+  const n = tip.adjustments?.length ?? 0
+  const label = tip.action === 'apply-day'
+    ? `${n} ajust${n !== 1 ? 'os aplicats' : ' aplicat'} a ${weekStore.daysFull[tip.day]}.`
+    : `${n} ajust${n !== 1 ? 'os aplicats' : ' aplicat'} a tota la setmana.`
+  uiStore.showToast(label, 'success')
+  uiStore.addAdviceHistoryEntry(
+    tip.action === 'apply-day'
+      ? `Ajust diari: ${weekStore.daysFull[tip.day]}`
+      : 'Ajust nutricional setmanal',
+    'applied'
+  )
+  uiStore.ignoreAdviceTip(tip.id)
 }
 
 function ignoreTip(tip) {
-  ignoredTips.value = [...ignoredTips.value, tip.id]
-  addHistory(tip.title, 'ignored')
+  uiStore.ignoreAdviceTip(tip.id)
+  uiStore.addAdviceHistoryEntry(tip.title, 'ignored')
   uiStore.showToast('Consell ignorat.', 'info')
-}
-
-function addHistory(label, status) {
-  history.value.unshift({
-    id: Date.now() + Math.random(),
-    label,
-    date: formatNow(),
-    status
-  })
-}
-
-function formatNow() {
-  return new Intl.DateTimeFormat('ca-ES', { day: 'numeric', month: 'short' }).format(new Date())
 }
 </script>
 
@@ -323,6 +395,38 @@ function formatNow() {
 .phase-badge--training { background: var(--warning-light); color: var(--warning); }
 .phase-badge--recovery { background: var(--accent-light); color: var(--accent-dark); }
 
+/* Trigger sessions block (sessions causing the high-load warning) */
+.tip-sessions {
+  background: var(--surface-2);
+  border-left: 3px solid var(--warning);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.tip-sessions__header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--warning);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.tip-sessions__header .material-symbols-rounded { font-size: 14px; }
+.tip-session-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  flex-wrap: wrap;
+}
+.tip-session__day { font-weight: 600; color: var(--text-2); }
+.tip-session__label { color: var(--text); font-weight: 500; flex: 1; min-width: 100px; }
+.tip-session__kcal { font-size: 11px; color: var(--text-3); white-space: nowrap; margin-left: auto; }
+
 /* Adjustments preview inside tip card */
 .tip-adjustments {
   background: var(--surface-2);
@@ -370,6 +474,12 @@ function formatNow() {
   top: 80px;
 }
 .history-title { font-family: var(--font-display); font-size: 15px; font-weight: 700; margin-bottom: 16px; }
+.history-empty {
+  font-size: 12px;
+  color: var(--text-3);
+  line-height: 1.5;
+  padding: 8px 0;
+}
 .history-list { display: flex; flex-direction: column; gap: 12px; }
 .history-item { display: flex; align-items: center; gap: 10px; }
 .history-item__dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }

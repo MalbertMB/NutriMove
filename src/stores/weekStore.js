@@ -157,6 +157,7 @@ export const useWeekStore = defineStore('week', () => {
 
   function prevWeek() { weekOffset.value-- }
   function nextWeek() { weekOffset.value++ }
+  function goToCurrentWeek() { weekOffset.value = 0 }
 
   function isDayPast(dayIndex, offset = weekOffset.value) {
     if (offset < 0) return true
@@ -352,7 +353,7 @@ export const useWeekStore = defineStore('week', () => {
 
   return {
     sessions, meals, days, daysFull, sessionTypes,
-    weekOffset, currentWeekLabel, prevWeek, nextWeek, isDayPast,
+    weekOffset, currentWeekLabel, prevWeek, nextWeek, goToCurrentWeek, isDayPast,
     currentWeekSessions, sessionsByDay,
     addSessionType, addSession, updateSession, removeSession,
     addFoodToSlot,

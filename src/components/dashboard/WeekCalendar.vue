@@ -24,7 +24,7 @@
         Sessions
       </div>
       <div ref="scrollRef" class="sessions-scroll">
-      <div class="sessions-content" :style="{ height: TOTAL_HEIGHT + 'px' }">
+      <div class="sessions-content" :style="{ height: TOTAL_HEIGHT + 'px' }" @mouseleave="hoverGhost = null">
         <!-- Time ruler -->
         <div class="time-ruler" aria-hidden="true">
           <div
@@ -37,22 +37,35 @@
           </div>
         </div>
 
+        <!-- Click-to-add ghost (rendered once, slides between columns) -->
+        <Transition name="ghost-fade">
+          <div
+            v-if="hoverGhost && dragOverDay === null"
+            class="add-ghost"
+            :style="{
+              left: `calc(48px + ${hoverGhost.day} * ((100% - 48px) / 7) + 4px)`,
+              width: 'calc((100% - 48px) / 7 - 8px)',
+              top: hoverGhost.top + 'px'
+            }"
+            aria-hidden="true"
+          >
+            <span class="material-symbols-rounded">add</span>
+            <span class="add-ghost__label">Afegir · {{ formatGhostTime(hoverGhost.hour) }}</span>
+          </div>
+        </Transition>
+
         <!-- Day columns -->
         <div
           v-for="(day, i) in weekStore.days"
           :key="'s-' + i"
           class="sessions-day"
           :class="{ 'sessions-day--drop-target': dragOverDay === i, 'sessions-day--today': isToday(i) }"
-          :aria-dropeffect="uiStore.keyboardPlacementSessionType ? 'move' : 'none'"
-          :aria-label="calendarCellLabel(i)"
-          role="button"
-          tabindex="0"
+          :aria-label="weekStore.daysFull[i]"
           @click="handleDayClick(i, $event)"
+          @mousemove="handleDayHover(i, $event)"
           @dragover.prevent="dragOverDay = i"
           @dragleave="dragOverDay = null"
           @drop="handleDrop(i, $event)"
-          @keydown.enter.prevent="handleKeyboardDrop(i)"
-          @keydown.space.prevent="handleKeyboardDrop(i)"
         >
           <!-- Hour grid lines -->
           <div
@@ -201,6 +214,7 @@ const uiStore = useUIStore()
 
 const dragOverDay = ref(null)
 const draggingSessionId = ref(null)
+const hoverGhost = ref(null)  // { day, top, hour }
 const emit = defineEmits(['dropSession'])
 const scrollRef = ref(null)
 const now = ref(new Date())
@@ -336,17 +350,22 @@ function handleDayClick(dayIndex, event) {
   uiStore.openAddPanel(dayIndex, clamped)
 }
 
-function handleKeyboardDrop(dayIndex) {
-  const type = uiStore.keyboardPlacementSessionType
-  if (!type) return
-  emit('dropSession', { dayIndex, type })
-  uiStore.cancelKeyboardSessionPlacement()
+function handleDayHover(dayIndex, event) {
+  if (event.target.closest('.session-block')) {
+    hoverGhost.value = null
+    return
+  }
+  const rect = event.currentTarget.getBoundingClientRect()
+  const rawHour = TIME_START + (event.clientY - rect.top) / HOUR_PX
+  const snapped = Math.round(rawHour * 2) / 2
+  const clamped = Math.max(TIME_START, Math.min(23.5, snapped))
+  hoverGhost.value = { day: dayIndex, top: hourToPx(clamped), hour: clamped }
 }
 
-function calendarCellLabel(dayIndex) {
-  const label = weekStore.daysFull[dayIndex]
-  const selectedType = uiStore.keyboardPlacementSessionType ? ` Sessió seleccionada: ${weekStore.sessionTypes[uiStore.keyboardPlacementSessionType].label}.` : ''
-  return `${label}. Prem Enter per afegir una sessió.${selectedType}`
+function formatGhostTime(hour) {
+  const h = Math.floor(hour)
+  const m = Math.round((hour - h) * 60)
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
 }
 
 const SLOTS = ['breakfast', 'lunch', 'snack', 'dinner']
@@ -442,17 +461,16 @@ function statusLabel(status) {
 .sessions-scroll {
   overflow-y: auto;
   overflow-x: hidden;
-  scrollbar-width: thin;
-  scrollbar-color: var(--border-2) transparent;
+  /* Hide scrollbar to keep day columns aligned with header & meals tracks */
+  scrollbar-width: none;
 }
-.sessions-scroll::-webkit-scrollbar { width: 4px; }
-.sessions-scroll::-webkit-scrollbar-track { background: transparent; }
-.sessions-scroll::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 99px; }
+.sessions-scroll::-webkit-scrollbar { display: none; }
 
 /* ── Sessions content (time-ruler + 7 day columns) ───────── */
 .sessions-content {
   display: grid;
   grid-template-columns: 48px repeat(7, 1fr);
+  position: relative;  /* anchor for the floating add-ghost */
   /* height set via inline style from TOTAL_HEIGHT constant */
 }
 
@@ -479,13 +497,69 @@ function statusLabel(status) {
   border-left: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
   overflow: hidden;
-  cursor: default;
+  cursor: pointer;
   transition: background var(--dur-fast);
 }
+.sessions-day:hover { background: color-mix(in srgb, var(--accent) 4%, transparent); }
 .sessions-day--today { background: rgba(0, 200, 150, 0.03); }
+.sessions-day--today:hover { background: color-mix(in srgb, var(--accent) 6%, transparent); }
 .sessions-day--drop-target {
   background: var(--accent-light);
   border-color: var(--accent);
+}
+
+/* Click-to-add ghost (single floating element, slides between columns) */
+.add-ghost {
+  position: absolute;
+  height: 32px;  /* matches default 60min duration (HOUR_PX = 32) */
+  border-radius: var(--radius-md);
+  border: 1.5px dashed color-mix(in srgb, var(--accent) 75%, transparent);
+  /* Opaque background (mixed against --surface) so the hour-lines below
+     don't show through and appear painted on top. */
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--accent) 18%, var(--surface)),
+    color-mix(in srgb, var(--accent) 10%, var(--surface))
+  );
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--accent) 20%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--accent-dark);
+  pointer-events: none;
+  z-index: 1;
+  transition:
+    top 0.14s cubic-bezier(0.22, 1, 0.36, 1),
+    left 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+    width 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: top, left;
+}
+.add-ghost .material-symbols-rounded {
+  font-size: 14px;
+  color: var(--accent-dark);
+}
+.add-ghost__label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Enter/leave fade — only fires on mount/unmount, not on slide */
+.ghost-fade-enter-active,
+.ghost-fade-leave-active {
+  transition:
+    opacity 0.16s ease-out,
+    transform 0.16s ease-out,
+    top 0.14s cubic-bezier(0.22, 1, 0.36, 1),
+    left 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.ghost-fade-enter-from,
+.ghost-fade-leave-to {
+  opacity: 0;
+  transform: scale(0.94);
 }
 
 /* Hour grid lines */
@@ -495,6 +569,7 @@ function statusLabel(status) {
   right: 0;
   border-top: 1px solid var(--border);
   pointer-events: none;
+  z-index: 0;
 }
 .hour-line--major { border-top-color: var(--border-2); }
 

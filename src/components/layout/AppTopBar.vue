@@ -7,6 +7,17 @@
     <div class="topbar__right">
       <!-- Week selector -->
       <div class="week-nav" v-if="showWeekNav">
+        <button
+          class="week-nav__today"
+          :class="{ 'week-nav__today--disabled': isCurrentWeek }"
+          :disabled="isCurrentWeek"
+          @click="$emit('today')"
+          :aria-label="isCurrentWeek ? 'Ja ets a la setmana actual' : 'Tornar a la setmana actual'"
+          :title="isCurrentWeek ? 'Ja ets a la setmana actual' : 'Tornar a la setmana actual'"
+        >
+          <span class="material-symbols-rounded">today</span>
+          Avui
+        </button>
         <button class="week-nav__btn" @click="$emit('prevWeek')" aria-label="Setmana anterior">
           <span class="material-symbols-rounded">chevron_left</span>
         </button>
@@ -32,10 +43,11 @@ defineProps({
   subtitle: { type: String, default: '' },
   showWeekNav: { type: Boolean, default: false },
   showSave: { type: Boolean, default: false },
-  weekLabel: { type: String, default: 'Setmana actual' }
+  weekLabel: { type: String, default: 'Setmana actual' },
+  isCurrentWeek: { type: Boolean, default: true }
 })
 
-defineEmits(['prevWeek', 'nextWeek', 'save'])
+defineEmits(['prevWeek', 'nextWeek', 'today', 'save'])
 </script>
 
 <style scoped>
@@ -100,6 +112,41 @@ defineEmits(['prevWeek', 'nextWeek', 'save'])
   white-space: nowrap;
   min-width: 180px;
   text-align: center;
+}
+
+/* "Avui" pill — left of the prev arrow, disabled when already on current week */
+.week-nav__today {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 32px;
+  margin-right: 4px;
+  padding: 0 12px;
+  border-radius: var(--radius-md);
+  background: var(--accent);
+  color: var(--navy);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--dur-fast), color var(--dur-fast),
+              box-shadow var(--dur-fast), transform var(--dur-fast);
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+.week-nav__today:hover {
+  background: var(--accent-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+.week-nav__today .material-symbols-rounded { font-size: 16px; }
+
+.week-nav__today--disabled,
+.week-nav__today--disabled:hover {
+  background: var(--surface-3, var(--surface-2));
+  color: var(--text-3);
+  box-shadow: none;
+  cursor: not-allowed;
+  transform: none;
 }
 
 /* Buttons */
