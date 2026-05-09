@@ -332,7 +332,7 @@ const sportTags = [
 ]
 
 const heroStats = [
-  { label: 'Entrenant des de', value: '4', unit: 'anys', icon: 'event_available' },
+  { label: 'Entrenant des de fa', value: '4', unit: 'anys', icon: 'event_available' },
   { label: 'Sessions/setmana', value: '5', unit: 'mitjana', icon: 'fitness_center' },
   { label: 'Streak nutrició', value: '23', unit: 'dies', icon: 'local_fire_department' },
   { label: 'Plans creats', value: '38', unit: '', icon: 'view_kanban' },

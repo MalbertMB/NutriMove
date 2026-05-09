@@ -215,9 +215,9 @@ export const useUIStore = defineStore("ui", () => {
 			key: "progress",
 			label: "Progrés",
 			icon: "trending_up",
-			enabled: false,
+			enabled: true,
 			description:
-				"Properament: anàlisi multi-setmana, regressions i objectius adaptatius.",
+				"PMC (CTL/ATL/TSB), progressió FTP, distribució per zones FC i adherència de macros setmana a setmana.",
 		},
 		{
 			key: "meals",

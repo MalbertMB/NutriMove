@@ -339,9 +339,57 @@
           </div>
         </div>
 
-        <!-- Session library at the bottom -->
-        <div id="sessions-library" class="library-wrap">
-          <SessionLibrary />
+        <!-- Weekly goals -->
+        <div id="sessions-goals" class="card goals-card">
+          <div class="card__head">
+            <h3 class="card__title">Objectius setmanals</h3>
+            <span
+              class="goals-pill"
+              :class="{ 'goals-pill--complete': achievedGoals === weeklyGoals.length }"
+              :title="`${achievedGoals}/${weeklyGoals.length} objectius assolits`"
+            >
+              <span class="material-symbols-rounded icon-fill">
+                {{ achievedGoals === weeklyGoals.length ? 'emoji_events' : 'flag' }}
+              </span>
+              {{ achievedGoals }}/{{ weeklyGoals.length }}
+            </span>
+          </div>
+
+          <div class="goals-list">
+            <div
+              v-for="g in weeklyGoals"
+              :key="g.key"
+              class="goal-row"
+              :class="{ 'goal-row--done': g.achieved }"
+            >
+              <div class="goal-row__head">
+                <span class="goal-row__icon" :class="`goal-row__icon--${g.tone}`">
+                  <span class="material-symbols-rounded icon-fill">{{ g.icon }}</span>
+                </span>
+                <span class="goal-row__label">{{ g.label }}</span>
+                <span class="goal-row__value">
+                  <strong>{{ g.currentLabel }}</strong>
+                  <small>/ {{ g.targetLabel }}</small>
+                </span>
+              </div>
+              <div class="goal-row__bar" :title="`${g.pct}%`">
+                <div
+                  class="goal-row__fill"
+                  :class="`goal-row__fill--${g.tone}`"
+                  :style="{ width: Math.min(100, g.pct) + '%' }"
+                ></div>
+              </div>
+              <div class="goal-row__meta">
+                <span class="goal-row__pct" :class="`goal-row__pct--${g.tone}`">{{ g.pct }}%</span>
+                <span class="meta-sep">·</span>
+                <span v-if="g.achieved" class="goal-row__status">
+                  <span class="material-symbols-rounded icon-fill">check_circle</span>
+                  Assolit
+                </span>
+                <span v-else>Falten {{ g.remainingLabel }}</span>
+              </div>
+            </div>
+          </div>
         </div>
       </aside>
     </div>
@@ -767,7 +815,6 @@
 import { computed, reactive, ref, watch, onMounted, onUnmounted } from 'vue'
 import AppTopBar from '@/components/layout/AppTopBar.vue'
 import SessionEditPanel from '@/components/session/SessionEditPanel.vue'
-import SessionLibrary from '@/components/session/SessionLibrary.vue'
 import LoadBadge from '@/components/ui/LoadBadge.vue'
 import AIPopover from '@/components/ai/AIPopover.vue'
 import { useWeekStore } from '@/stores/weekStore'
@@ -854,6 +901,70 @@ const busiestDay = computed(() => {
   }
   return best
 })
+
+// ── Weekly goals (target setmanal) ────────────────────────
+// Targets aligned with Profile sport data (5 sessions, 6h/setmana).
+// Kcal target derived from typical moderate-intensity output for that volume.
+const WEEKLY_TARGETS = { sessions: 5, hours: 6, kcal: 3000 }
+
+function pickGoalTone(pct) {
+  if (pct >= 100) return 'good'
+  if (pct >= 50) return 'mid'
+  return 'low'
+}
+
+const weeklyGoals = computed(() => {
+  const sessionsCur = totals.value.totalSessions
+  const minutesCur = weekStore.currentWeekSessions.reduce((s, sess) => s + sess.duration, 0)
+  const hoursCur = +(minutesCur / 60).toFixed(1)
+  const kcalCur = totals.value.totalKcalBurned
+
+  const sessionsPct = Math.round(sessionsCur / WEEKLY_TARGETS.sessions * 100)
+  const hoursPct    = Math.round(hoursCur    / WEEKLY_TARGETS.hours    * 100)
+  const kcalPct     = Math.round(kcalCur     / WEEKLY_TARGETS.kcal     * 100)
+
+  const sessionsLeft = Math.max(0, WEEKLY_TARGETS.sessions - sessionsCur)
+  const hoursLeft    = Math.max(0, +(WEEKLY_TARGETS.hours - hoursCur).toFixed(1))
+  const kcalLeft     = Math.max(0, WEEKLY_TARGETS.kcal - kcalCur)
+
+  return [
+    {
+      key: 'sessions',
+      icon: 'fitness_center',
+      label: 'Sessions',
+      currentLabel: sessionsCur,
+      targetLabel: WEEKLY_TARGETS.sessions,
+      pct: sessionsPct,
+      tone: pickGoalTone(sessionsPct),
+      achieved: sessionsCur >= WEEKLY_TARGETS.sessions,
+      remainingLabel: `${sessionsLeft} sessió${sessionsLeft === 1 ? '' : 's'}`,
+    },
+    {
+      key: 'hours',
+      icon: 'schedule',
+      label: 'Volum',
+      currentLabel: `${hoursCur}h`,
+      targetLabel: `${WEEKLY_TARGETS.hours}h`,
+      pct: hoursPct,
+      tone: pickGoalTone(hoursPct),
+      achieved: hoursCur >= WEEKLY_TARGETS.hours,
+      remainingLabel: `${hoursLeft} h`,
+    },
+    {
+      key: 'kcal',
+      icon: 'local_fire_department',
+      label: 'Kcal cremades',
+      currentLabel: formatK(kcalCur),
+      targetLabel: formatK(WEEKLY_TARGETS.kcal),
+      pct: kcalPct,
+      tone: pickGoalTone(kcalPct),
+      achieved: kcalCur >= WEEKLY_TARGETS.kcal,
+      remainingLabel: `${formatK(kcalLeft)} kcal`,
+    },
+  ]
+})
+
+const achievedGoals = computed(() => weeklyGoals.value.filter(g => g.achieved).length)
 
 function daySummary(dayIdx) {
   const ds = weekStore.sessionsByDay[dayIdx] || []
@@ -1635,8 +1746,11 @@ const infoData = computed(() => {
   display: flex; flex-direction: column;
   gap: 12px;
   min-height: 0;
-  overflow: hidden;
+  overflow-y: auto;
+  padding-right: 4px;
 }
+.sessions-right::-webkit-scrollbar { width: 4px; }
+.sessions-right::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 99px; }
 
 .card {
   background: var(--surface);
@@ -1774,14 +1888,77 @@ const infoData = computed(() => {
   text-transform: uppercase; letter-spacing: 0.3px;
 }
 
-/* Library wrapper takes remaining space */
-.library-wrap {
-  flex: 1;
-  min-height: 200px;
-  overflow: hidden;
-  display: flex;
+/* Weekly goals card */
+.goals-card { flex-shrink: 0; }
+.goals-pill {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11px; font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 99px;
+  background: var(--surface-3);
+  color: var(--text-2);
+  transition: background var(--dur-fast), color var(--dur-fast), box-shadow var(--dur-fast);
 }
-.library-wrap > * { flex: 1; min-height: 0; }
+.goals-pill .material-symbols-rounded { font-size: 13px; }
+.goals-pill--complete {
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  color: var(--navy);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+.goals-list { display: flex; flex-direction: column; gap: 12px; }
+
+.goal-row { display: flex; flex-direction: column; gap: 5px; }
+.goal-row__head { display: flex; align-items: center; gap: 8px; }
+.goal-row__icon {
+  width: 24px; height: 24px;
+  border-radius: var(--radius-sm);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  background: var(--surface-3);
+  color: var(--text-3);
+  transition: background var(--dur-fast), color var(--dur-fast);
+}
+.goal-row__icon .material-symbols-rounded { font-size: 14px; }
+.goal-row__icon--good { background: var(--accent-light); color: var(--accent-dark); }
+.goal-row__icon--mid  { background: color-mix(in srgb, #F59E0B 16%, transparent); color: #B45309; }
+.goal-row__icon--low  { background: var(--surface-3); color: var(--text-3); }
+
+.goal-row__label { flex: 1; font-size: 12px; font-weight: 600; color: var(--text); }
+.goal-row__value { font-size: 12px; color: var(--text-2); white-space: nowrap; }
+.goal-row__value strong { font-family: var(--font-display); font-weight: 800; color: var(--text); }
+.goal-row__value small { font-size: 11px; color: var(--text-3); margin-left: 1px; }
+
+.goal-row__bar {
+  height: 6px;
+  background: var(--surface-3);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.goal-row__fill {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.6s var(--ease);
+}
+.goal-row__fill--good { background: linear-gradient(90deg, var(--accent), var(--accent-dark)); }
+.goal-row__fill--mid  { background: linear-gradient(90deg, #F59E0B, #D97706); }
+.goal-row__fill--low  { background: linear-gradient(90deg, var(--border-2), var(--text-3)); }
+
+.goal-row__meta {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 10px; color: var(--text-3);
+}
+.goal-row__pct { font-weight: 800; }
+.goal-row__pct--good { color: var(--accent-dark); }
+.goal-row__pct--mid  { color: #B45309; }
+.goal-row__pct--low  { color: var(--text-3); }
+.goal-row__status {
+  display: inline-flex; align-items: center; gap: 3px;
+  color: var(--accent-dark);
+  font-weight: 700;
+}
+.goal-row__status .material-symbols-rounded { font-size: 12px; }
+.goal-row--done .goal-row__label { color: var(--accent-dark); }
 
 /* Buttons */
 .btn {
