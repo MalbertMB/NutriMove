@@ -125,7 +125,7 @@
                 <ul v-if="showAutocomplete && searchResults.length && !selectedFood" class="editor-autocomplete">
                   <li
                     v-for="food in searchResults"
-                    :key="food.name"
+                    :key="food.id"
                     class="editor-autocomplete__item"
                     @mousedown.prevent="selectFood(food)"
                   >
@@ -186,6 +186,7 @@ import { ref, computed, watch, nextTick } from 'vue'
 import MacroBar from '@/components/ui/MacroBar.vue'
 import { useWeekStore } from '@/stores/weekStore'
 import { useUIStore } from '@/stores/uiStore'
+import { searchFoods, scaleFood } from '@/data/foods'
 
 const props = defineProps({
   dayIndex: { type: Number, required: true },
@@ -240,49 +241,6 @@ const aiSummary = computed(() => {
   }
 })
 
-// Food database
-const FOODS = [
-  { name: 'Arròs blanc cuit', kcal: 130, carbs: 28, protein: 2.7, fat: 0.3 },
-  { name: 'Arròs integral cuit', kcal: 112, carbs: 23, protein: 2.6, fat: 0.9 },
-  { name: 'Pasta integral cuita', kcal: 124, carbs: 23, protein: 5, fat: 1 },
-  { name: 'Pasta blanca cuita', kcal: 131, carbs: 25, protein: 5, fat: 1.1 },
-  { name: 'Quinoa cuita', kcal: 120, carbs: 21, protein: 4.4, fat: 1.9 },
-  { name: 'Pa integral', kcal: 247, carbs: 41, protein: 9, fat: 3.5 },
-  { name: 'Pit de pollastre', kcal: 165, carbs: 0, protein: 31, fat: 3.6 },
-  { name: 'Pit de gall dindi', kcal: 135, carbs: 0, protein: 28, fat: 2 },
-  { name: 'Salmó', kcal: 208, carbs: 0, protein: 20, fat: 13 },
-  { name: 'Tonyina al natural', kcal: 116, carbs: 0, protein: 26, fat: 1 },
-  { name: 'Ou sencer', kcal: 155, carbs: 1.1, protein: 13, fat: 11 },
-  { name: 'Tofu', kcal: 76, carbs: 2, protein: 8, fat: 4.5 },
-  { name: 'Seitàn', kcal: 125, carbs: 6, protein: 25, fat: 2 },
-  { name: 'Llentilles cuites', kcal: 116, carbs: 20, protein: 9, fat: 0.4 },
-  { name: 'Cigrons cuits', kcal: 164, carbs: 27, protein: 9, fat: 2.6 },
-  { name: 'Fesols cuits', kcal: 127, carbs: 22, protein: 8, fat: 0.5 },
-  { name: 'Farina de civada', kcal: 371, carbs: 56, protein: 13, fat: 7 },
-  { name: 'Llet semi', kcal: 47, carbs: 4.9, protein: 3.4, fat: 1.5 },
-  { name: 'Iogurt grec', kcal: 97, carbs: 3.6, protein: 9, fat: 5 },
-  { name: 'Mató', kcal: 98, carbs: 3, protein: 11, fat: 4.3 },
-  { name: 'Plàtan', kcal: 89, carbs: 23, protein: 1.1, fat: 0.3 },
-  { name: 'Poma', kcal: 52, carbs: 14, protein: 0.3, fat: 0.2 },
-  { name: 'Taronja', kcal: 47, carbs: 12, protein: 0.9, fat: 0.1 },
-  { name: 'Raïm', kcal: 69, carbs: 18, protein: 0.7, fat: 0.2 },
-  { name: 'Bròcoli cuit', kcal: 35, carbs: 5, protein: 3, fat: 0.5 },
-  { name: 'Espinacs cuits', kcal: 23, carbs: 3.6, protein: 3, fat: 0.5 },
-  { name: 'Tomàquet', kcal: 18, carbs: 3.9, protein: 0.9, fat: 0.2 },
-  { name: 'Avocado', kcal: 160, carbs: 9, protein: 2, fat: 15 },
-  { name: 'Ametlles', kcal: 579, carbs: 22, protein: 21, fat: 50 },
-  { name: 'Nous', kcal: 654, carbs: 14, protein: 15, fat: 65 },
-  { name: 'Fruits secs mixtos', kcal: 607, carbs: 14, protein: 21, fat: 55 },
-  { name: 'Mantega de cacauet', kcal: 598, carbs: 20, protein: 22, fat: 50 },
-  { name: 'Mel', kcal: 304, carbs: 82, protein: 0.3, fat: 0 },
-  { name: "Oli d'oliva", kcal: 884, carbs: 0, protein: 0, fat: 100 },
-  { name: 'Barreta energètica', kcal: 380, carbs: 58, protein: 10, fat: 11 },
-  { name: 'Batut de proteïnes', kcal: 120, carbs: 6, protein: 24, fat: 2 },
-  { name: 'Mozzarella', kcal: 280, carbs: 2.2, protein: 17, fat: 22 },
-  { name: 'Formatge cottage', kcal: 98, carbs: 3.4, protein: 11, fat: 4.3 },
-]
-const UNIT_GRAMS = { g: 1, ml: 1, unitat: 100 }
-
 const editingSlot = ref(null)
 const searchQuery = ref('')
 const selectedFood = ref(null)
@@ -290,22 +248,10 @@ const quantity = ref(100)
 const selectedUnit = ref('g')
 const showAutocomplete = ref(false)
 
-const searchResults = computed(() => {
-  if (!searchQuery.value || searchQuery.value.length < 2) return []
-  const q = searchQuery.value.toLowerCase()
-  return FOODS.filter(f => f.name.toLowerCase().includes(q)).slice(0, 7)
-})
-
-const nutritionPreview = computed(() => {
-  if (!selectedFood.value || !quantity.value) return null
-  const grams = quantity.value * UNIT_GRAMS[selectedUnit.value]
-  return {
-    kcal:    Math.round(selectedFood.value.kcal    * grams / 100),
-    carbs:   Math.round(selectedFood.value.carbs   * grams / 100),
-    protein: Math.round(selectedFood.value.protein * grams / 100),
-    fat:     Math.round(selectedFood.value.fat     * grams / 100),
-  }
-})
+const searchResults = computed(() => searchFoods(searchQuery.value))
+const nutritionPreview = computed(() =>
+  scaleFood(selectedFood.value, quantity.value, selectedUnit.value)
+)
 
 function toggleSlotEditor(slot) {
   if (editingSlot.value === slot) {
@@ -328,17 +274,12 @@ function clearSearch()      { searchQuery.value = ''; selectedFood.value = null 
 function selectFood(food)   { selectedFood.value = food; searchQuery.value = food.name }
 
 function saveSlotEdit(slot, slotLabel) {
-  if (!selectedFood.value) return
-  const grams = quantity.value * UNIT_GRAMS[selectedUnit.value]
-  weekStore.addFoodToSlot(props.dayIndex, slot, {
-    name:    selectedFood.value.name,
-    kcal:    Math.round(selectedFood.value.kcal    * grams / 100),
-    carbs:   Math.round(selectedFood.value.carbs   * grams / 100),
-    protein: Math.round(selectedFood.value.protein * grams / 100),
-    fat:     Math.round(selectedFood.value.fat     * grams / 100),
-  })
+  const food = selectedFood.value
+  if (!food) return
+  const scaled = scaleFood(food, quantity.value, selectedUnit.value)
+  weekStore.addFoodToSlot(props.dayIndex, slot, { name: food.name, ...scaled })
   const label = slotLabel?.toLowerCase() ?? slot
-  uiStore.showToast(`${selectedFood.value.name} afegit al ${label}.`, 'success')
+  uiStore.showToast(`${food.name} afegit al ${label}.`, 'success')
   closeSlotEditor()
 }
 

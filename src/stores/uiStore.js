@@ -174,9 +174,60 @@ export const useUIStore = defineStore("ui", () => {
 	// Library panel (drag source - Task 2)
 	const libraryOpen = ref(true);
 
-	// User preference: show advanced metrics on Sessions page
-	const advancedMetrics = ref(false);
-	function setAdvancedMetrics(v) { advancedMetrics.value = !!v; }
+	// ── User mode ────────────────────────────────────────────────
+	// Global "Simple" vs "Advanced" mode. Pages opt in to a richer view by
+	// reading `advancedMetrics` (kept as a computed alias for callers that
+	// still use the old name). Adding a new advanced view = read `userMode`
+	// from the page and append a row to `advancedViewPages` below.
+	const userMode = ref("simple"); // 'simple' | 'advanced'
+	const advancedMetrics = computed(() => userMode.value === "advanced");
+
+	function setUserMode(mode) {
+		userMode.value = mode === "advanced" ? "advanced" : "simple";
+	}
+	function setAdvancedMetrics(v) {
+		setUserMode(v ? "advanced" : "simple");
+	}
+	function toggleUserMode() {
+		setUserMode(userMode.value === "advanced" ? "simple" : "advanced");
+	}
+
+	// Registry of pages that expose an advanced view. The Profile renders this
+	// list dynamically; new pages just append an entry here.
+	const advancedViewPages = ref([
+		{
+			key: "sessions",
+			label: "Sessions",
+			icon: "fitness_center",
+			enabled: true,
+			description:
+				"TSS setmanal, càrrega AC:W, zones FC, polarització 80/20, heatmap horari i risc d'overtraining.",
+		},
+		{
+			key: "dashboard",
+			label: "Inici",
+			icon: "home",
+			enabled: false,
+			description:
+				"Properament: vista executiva amb alertes proactives, tendències i comparativa setmanal.",
+		},
+		{
+			key: "progress",
+			label: "Progrés",
+			icon: "trending_up",
+			enabled: false,
+			description:
+				"Properament: anàlisi multi-setmana, regressions i objectius adaptatius.",
+		},
+		{
+			key: "meals",
+			label: "Àpats",
+			icon: "restaurant",
+			enabled: false,
+			description:
+				"Properament: micronutrients, electròlits i timing nutricional al voltant de cada sessió.",
+		},
+	]);
 
 	// Advice page state — persists across navigations
 	const adviceIgnoredTips = ref([]);
@@ -240,7 +291,11 @@ export const useUIStore = defineStore("ui", () => {
 		adviceHistory,
 		ignoreAdviceTip,
 		addAdviceHistoryEntry,
+		userMode,
 		advancedMetrics,
+		advancedViewPages,
+		setUserMode,
 		setAdvancedMetrics,
+		toggleUserMode,
 	};
 });
