@@ -124,7 +124,19 @@ function createDefaultMeals() {
   ]
 }
 
+function createEmptyMeals(targetKcal = 2000) {
+  return Array.from({ length: 7 }, () => ({
+    breakfast: { label: 'Esmorzar', kcal: 0, carbs: 0, protein: 0, fat: 0, items: [] },
+    lunch:     { label: 'Dinar',    kcal: 0, carbs: 0, protein: 0, fat: 0, items: [] },
+    snack:     { label: 'Berenar',  kcal: 0, carbs: 0, protein: 0, fat: 0, items: [] },
+    dinner:    { label: 'Sopar',    kcal: 0, carbs: 0, protein: 0, fat: 0, items: [] },
+    total: 0, targetKcal, status: 'warning',
+  }))
+}
+
 export const useWeekStore = defineStore('week', () => {
+  const isNewUser = ref(false)
+  const baseMealKcal = ref(2200)
   const sessions = ref(createDefaultSessions())
   const weekOffset = ref(0)
   const mealsPerWeek = ref({ '0': createDefaultMeals() })
@@ -133,9 +145,20 @@ export const useWeekStore = defineStore('week', () => {
   function getMealsForWeek(offset) {
     const key = String(offset)
     if (!mealsPerWeek.value[key]) {
-      mealsPerWeek.value[key] = createDefaultMeals()
+      mealsPerWeek.value[key] = isNewUser.value
+        ? createEmptyMeals(baseMealKcal.value)
+        : createDefaultMeals()
     }
     return mealsPerWeek.value[key]
+  }
+
+  function resetForNewUser(caloricGoal = 2000) {
+    isNewUser.value = true
+    baseMealKcal.value = Math.round(caloricGoal) || 2000
+    sessions.value = []
+    mealsPerWeek.value = { '0': createEmptyMeals(baseMealKcal.value) }
+    weekOffset.value = 0
+    nextId.value = 10
   }
 
   const meals = computed(() => getMealsForWeek(weekOffset.value))
@@ -358,6 +381,7 @@ export const useWeekStore = defineStore('week', () => {
     addSessionType, addSession, updateSession, removeSession,
     addFoodToSlot,
     applyAIMealAdjustment, applyAIWeekAdjustment, applyMealAdjustment,
-    getSessionById, getWeekTotals
+    getSessionById, getWeekTotals,
+    resetForNewUser
   }
 })

@@ -38,6 +38,10 @@
       </form>
 
       <p class="hint">Demo: pau@nutrimove.app / 123456</p>
+      <p class="hint">
+        Sense compte?
+        <router-link to="/signup">Registra't</router-link>
+      </p>
     </section>
   </main>
 </template>
@@ -182,6 +186,9 @@ p {
 .hint {
   text-align: center;
   font-size: 11px;
-  margin-top: 14px;
+  margin-top: 10px;
 }
+
+.hint a { color: var(--accent); font-weight: 600; text-decoration: none; }
+.hint a:hover { text-decoration: underline; }
 </style>

@@ -310,60 +310,86 @@ import { reactive, ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import AppTopBar from '@/components/layout/AppTopBar.vue'
 import { useUIStore } from '@/stores/uiStore'
-import { useAuthStore } from '@/stores/authStore'
+import { useAuthStore, SPORT_OPTIONS, GOAL_OPTIONS } from '@/stores/authStore'
 
 const uiStore = useUIStore()
 const authStore = useAuthStore()
 const router = useRouter()
 
-const displayName = computed(() => authStore.user?.name || 'Pau Martínez')
+const isDemoUser = computed(() => authStore.user?.email === 'pau@nutrimove.app')
+
+const displayName = computed(() => authStore.user?.name || '')
 const initials = computed(() => {
   const parts = (displayName.value || '').split(/\s+/).filter(Boolean)
-  const i = (parts[0]?.[0] || 'P') + (parts[1]?.[0] || '')
+  const i = (parts[0]?.[0] || '?') + (parts[1]?.[0] || '')
   return i.toUpperCase()
 })
 
-const profileMeta = computed(() => '35 anys · 1,81 m · 78 kg · Catalunya')
+const profileMeta = computed(() => {
+  const u = authStore.user
+  if (!u) return ''
+  const parts = []
+  if (u.age) parts.push(`${u.age} anys`)
+  if (u.height) parts.push(`${(u.height / 100).toFixed(2).replace('.', ',')} m`)
+  if (u.weight) parts.push(`${u.weight} kg`)
+  return parts.join(' · ')
+})
 
-const sportTags = [
-  { label: 'Ciclisme', icon: 'directions_bike' },
-  { label: 'Natació', icon: 'pool' },
-  { label: 'Força', icon: 'fitness_center' },
-]
+const sportTags = computed(() => {
+  const sports = authStore.user?.sports ?? []
+  return sports
+    .map(key => SPORT_OPTIONS.find(s => s.key === key))
+    .filter(Boolean)
+    .map(s => ({ label: s.label, icon: s.icon }))
+})
 
-const heroStats = [
-  { label: 'Entrenant des de fa', value: '4', unit: 'anys', icon: 'event_available' },
-  { label: 'Sessions/setmana', value: '5', unit: 'mitjana', icon: 'fitness_center' },
-  { label: 'Streak nutrició', value: '23', unit: 'dies', icon: 'local_fire_department' },
-  { label: 'Plans creats', value: '38', unit: '', icon: 'view_kanban' },
-]
+const heroStats = computed(() => {
+  const demo = isDemoUser.value
+  return [
+    { label: 'Entrenant des de fa', value: demo ? '4' : '–', unit: demo ? 'anys' : '', icon: 'event_available' },
+    { label: 'Sessions/setmana',    value: demo ? '5' : '–', unit: demo ? 'mitjana' : '', icon: 'fitness_center' },
+    { label: 'Streak nutrició',     value: demo ? '23' : '–', unit: demo ? 'dies' : '', icon: 'local_fire_department' },
+    { label: 'Plans creats',        value: demo ? '38' : '–', unit: '', icon: 'view_kanban' },
+  ]
+})
 
-const personalData = [
-  { label: 'Edat', value: '35 anys', icon: 'cake' },
-  { label: 'Pes', value: '78 kg', icon: 'monitor_weight', delta: { dir: 'up', text: '+0,4 kg' } },
-  { label: 'Alçada', value: '181 cm', icon: 'height' },
-  { label: 'TMB estimat', value: '1.840 kcal/dia', icon: 'bolt' },
-  { label: 'Objectiu calòric', value: '2.200 kcal/dia', icon: 'restaurant_menu' },
-  { label: "Nivell d'activitat", value: 'Alt (5–6 dies/setmana)', icon: 'trending_up' },
-]
+const personalData = computed(() => {
+  const u = authStore.user
+  return [
+    { label: 'Edat', value: u?.age ? `${u.age} anys` : '–', icon: 'cake' },
+    { label: 'Pes', value: u?.weight ? `${u.weight} kg` : '–', icon: 'monitor_weight' },
+    { label: 'Alçada', value: u?.height ? `${u.height} cm` : '–', icon: 'height' },
+    { label: 'TMB estimat', value: authStore.tmb ? `${authStore.tmb.toLocaleString('ca-ES')} kcal/dia` : '–', icon: 'bolt' },
+    { label: 'Objectiu calòric', value: authStore.caloricGoal ? `${authStore.caloricGoal.toLocaleString('ca-ES')} kcal/dia` : '–', icon: 'restaurant_menu' },
+    { label: "Nivell d'activitat", value: authStore.activityLabel || '–', icon: 'trending_up' },
+  ]
+})
 
-const goals = [
-  { label: 'Mantenir el rendiment esportiu' },
-  { label: 'Millorar la recuperació entre sessions' },
-  { label: 'Nutrició sense càrrega cognitiva' },
-  { label: 'Planificació setmanal en < 5 minuts' },
-]
+const goals = computed(() =>
+  (authStore.user?.goals ?? [])
+    .map(key => GOAL_OPTIONS.find(g => g.key === key))
+    .filter(Boolean)
+    .map(g => ({ label: g.label }))
+)
 
-const personalGoal = ref('Vull mantenir el rendiment i recuperar millor.')
+const personalGoal = ref(authStore.user?.personalGoal ?? '')
 
-const sportData = [
-  { label: 'Esports preferits', value: 'Ciclisme, Natació, Força', icon: 'sports' },
-  { label: 'FTP estimat', value: '220 W', icon: 'electric_bolt' },
-  { label: 'FC màxima', value: '186 bpm', icon: 'favorite' },
-  { label: 'FC en repòs', value: '58 bpm', icon: 'monitor_heart' },
-  { label: 'Llindar (Z4)', value: '170 bpm', icon: 'speed' },
-  { label: 'Hores objectiu/sem.', value: '6 h', icon: 'schedule' },
-]
+const sportData = computed(() => {
+  const u = authStore.user
+  const demo = isDemoUser.value
+  const sportsLabel = (u?.sports ?? [])
+    .map(key => SPORT_OPTIONS.find(s => s.key === key)?.label)
+    .filter(Boolean)
+    .join(', ') || '–'
+  return [
+    { label: 'Esports preferits',    value: sportsLabel,         icon: 'sports' },
+    { label: 'FTP estimat',          value: demo ? '220 W'  : '–', icon: 'electric_bolt' },
+    { label: 'FC màxima',            value: demo ? '186 bpm': '–', icon: 'favorite' },
+    { label: 'FC en repòs',          value: demo ? '58 bpm' : '–', icon: 'monitor_heart' },
+    { label: 'Llindar (Z4)',         value: demo ? '170 bpm': '–', icon: 'speed' },
+    { label: 'Hores objectiu/sem.',  value: demo ? '6 h'    : '–', icon: 'schedule' },
+  ]
+})
 
 const prefs = reactive([
   {

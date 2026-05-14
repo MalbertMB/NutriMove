@@ -6,6 +6,7 @@ import AdviceView from "@/views/AdviceView.vue";
 import ProgressView from "@/views/ProgressView.vue";
 import ProfileView from "@/views/ProfileView.vue";
 import LoginView from "@/views/LoginView.vue";
+import SignupView from "@/views/SignupView.vue";
 import { useAuthStore } from "@/stores/authStore";
 
 const routes = [
@@ -15,6 +16,12 @@ const routes = [
 		name: "login",
 		component: LoginView,
 		meta: { title: "Login" },
+	},
+	{
+		path: "/signup",
+		name: "signup",
+		component: SignupView,
+		meta: { title: "Registre" },
 	},
 	{
 		path: "/dashboard",
@@ -70,7 +77,7 @@ router.beforeEach((to) => {
 		return { name: "login" };
 	}
 
-	if (to.name === "login" && authStore.isAuthenticated) {
+	if ((to.name === "login" || to.name === "signup") && authStore.isAuthenticated) {
 		return { name: "dashboard" };
 	}
 

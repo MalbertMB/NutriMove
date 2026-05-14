@@ -108,8 +108,10 @@ import { ref, computed, watch } from 'vue'
 import AppTopBar from '@/components/layout/AppTopBar.vue'
 import MealDetailContent from '@/components/meal/MealDetailContent.vue'
 import { useWeekStore } from '@/stores/weekStore'
+import { useAuthStore } from '@/stores/authStore'
 
 const weekStore = useWeekStore()
+const authStore = useAuthStore()
 
 const SLOTS = ['breakfast', 'lunch', 'snack', 'dinner']
 
@@ -135,11 +137,14 @@ function getDayNum(dayIdx) {
   return start.getDate()
 }
 
-const MINI_MACROS_CFG = [
-  { key: 'carbs',   label: 'Hidrats',  target: 280, max: 380, color: 'var(--purple)' },
-  { key: 'protein', label: 'Proteïna', target: 155, max: 190, color: '#00C896' },
-  { key: 'fat',     label: 'Greixos',  target: 72,  max: 100, color: '#F59E0B' },
-]
+const MINI_MACROS_CFG = computed(() => {
+  const kcal = authStore.caloricGoal || 2000
+  return [
+    { key: 'carbs',   label: 'Hidrats',  target: Math.round(kcal * 0.50 / 4), max: Math.round(kcal * 0.65 / 4), color: 'var(--purple)' },
+    { key: 'protein', label: 'Proteïna', target: Math.round(kcal * 0.28 / 4), max: Math.round(kcal * 0.35 / 4), color: '#00C896' },
+    { key: 'fat',     label: 'Greixos',  target: Math.round(kcal * 0.30 / 9), max: Math.round(kcal * 0.40 / 9), color: '#F59E0B' },
+  ]
+})
 
 function miniMacros(meal) {
   const vals = {
@@ -147,7 +152,7 @@ function miniMacros(meal) {
     protein: SLOTS.reduce((s, k) => s + (meal[k]?.protein ?? 0), 0),
     fat:     SLOTS.reduce((s, k) => s + (meal[k]?.fat     ?? 0), 0),
   }
-  return MINI_MACROS_CFG.map(cfg => ({
+  return MINI_MACROS_CFG.value.map(cfg => ({
     ...cfg,
     val: Math.round(vals[cfg.key]),
     pct: Math.min(100, (vals[cfg.key] / cfg.max) * 100),

@@ -72,10 +72,11 @@
           </div>
         </header>
         <div class="combo-chart">
-          <svg :viewBox="`0 0 ${CW} ${CH}`" preserveAspectRatio="none" class="chart-svg">
+          <div class="svg-frame">
+          <svg :viewBox="`0 0 ${CW} ${WIDE_H}`" preserveAspectRatio="none" class="chart-svg">
             <!-- Y grid lines -->
             <g class="grid">
-              <line v-for="g in 4" :key="g" :x1="PAD_L" :x2="CW - PAD_R" :y1="PAD_T + g * (CH - PAD_T - PAD_B) / 4" :y2="PAD_T + g * (CH - PAD_T - PAD_B) / 4" />
+              <line v-for="g in 4" :key="g" :x1="PAD_L" :x2="CW - PAD_R" :y1="PAD_T + g * (WIDE_H - PAD_T - PAD_B) / 4" :y2="PAD_T + g * (WIDE_H - PAD_T - PAD_B) / 4" />
             </g>
             <!-- Bars (hours) -->
             <g class="bars">
@@ -83,9 +84,9 @@
                 v-for="(w, i) in weeks"
                 :key="'b' + i"
                 :x="bandX(i) - BAR_W / 2"
-                :y="yScale(w.hours, hoursMax)"
+                :y="yScale(w.hours, hoursMax, 0, WIDE_H)"
                 :width="BAR_W"
-                :height="(CH - PAD_B) - yScale(w.hours, hoursMax)"
+                :height="(WIDE_H - PAD_B) - yScale(w.hours, hoursMax, 0, WIDE_H)"
                 rx="3"
                 :class="{ 'bar--current': i === weeks.length - 1 }"
               >
@@ -93,12 +94,12 @@
               </rect>
             </g>
             <!-- Sessions line -->
-            <path :d="linePath(weeks.map(w => w.sessions), sessionsMax)" class="line line--sessions" />
+            <path :d="linePath(weeks.map(w => w.sessions), sessionsMax, 0, WIDE_H)" class="line line--sessions" />
             <circle
               v-for="(w, i) in weeks"
               :key="'p' + i"
               :cx="bandX(i)"
-              :cy="yScale(w.sessions, sessionsMax)"
+              :cy="yScale(w.sessions, sessionsMax, 0, WIDE_H)"
               r="3.2"
               class="line-dot line-dot--sessions"
               :class="{ 'line-dot--current': i === weeks.length - 1 }"
@@ -107,14 +108,15 @@
             </circle>
             <!-- X labels -->
             <g class="axis-x">
-              <text v-for="(w, i) in weeks" :key="'l' + i" :x="bandX(i)" :y="CH - 4" text-anchor="middle">{{ w.wk }}</text>
+              <text v-for="(w, i) in weeks" :key="'l' + i" :x="bandX(i)" :y="WIDE_H - 4" text-anchor="middle">{{ w.wk }}</text>
             </g>
             <!-- Y axis (left = hours) -->
             <g class="axis-y">
               <text :x="PAD_L - 6" :y="PAD_T + 4" text-anchor="end">{{ hoursMax }}h</text>
-              <text :x="PAD_L - 6" :y="CH - PAD_B + 4" text-anchor="end">0</text>
+              <text :x="PAD_L - 6" :y="WIDE_H - PAD_B + 4" text-anchor="end">0</text>
             </g>
           </svg>
+          </div>
         </div>
       </section>
 
@@ -127,7 +129,7 @@
                 <span class="material-symbols-rounded icon-fill">monitor_weight</span>
                 Pes corporal
               </h3>
-              <span class="chart-card__sub">Tendència 12 setmanes · objectiu 77 kg</span>
+              <span class="chart-card__sub">Tendència 12 setmanes · objectiu {{ weightGoal }} kg</span>
             </div>
             <span class="trend-pill" :class="`trend-pill--${weightTrend.tone}`">
               <span class="material-symbols-rounded">{{ weightTrend.icon }}</span>
@@ -139,16 +141,16 @@
               <!-- Goal band -->
               <rect
                 :x="PAD_L"
-                :y="yScale(77.5, weightYDomain.max, weightYDomain.min)"
+                :y="yScale(weightGoal + 0.5, weightYDomain.max, weightYDomain.min)"
                 :width="CW - PAD_L - PAD_R"
-                :height="yScale(76.5, weightYDomain.max, weightYDomain.min) - yScale(77.5, weightYDomain.max, weightYDomain.min)"
+                :height="yScale(weightGoal - 0.5, weightYDomain.max, weightYDomain.min) - yScale(weightGoal + 0.5, weightYDomain.max, weightYDomain.min)"
                 class="goal-band"
               />
               <line
                 :x1="PAD_L"
                 :x2="CW - PAD_R"
-                :y1="yScale(77, weightYDomain.max, weightYDomain.min)"
-                :y2="yScale(77, weightYDomain.max, weightYDomain.min)"
+                :y1="yScale(weightGoal, weightYDomain.max, weightYDomain.min)"
+                :y2="yScale(weightGoal, weightYDomain.max, weightYDomain.min)"
                 class="goal-line"
               />
               <!-- Area + line -->
@@ -222,7 +224,8 @@
               <span class="chart-card__sub">Últimes 4 setmanes · {{ sportTotalLabel }}</span>
             </div>
           </header>
-          <div class="donut-row">
+          <p v-if="!sportBreakdown.length" class="empty-hint">Afegeix sessions per veure la distribució per esport.</p>
+          <div v-else class="donut-row">
             <div class="donut" :style="{ '--gradient': donutGradient }" aria-hidden="true">
               <div class="donut__center">
                 <span class="donut__num">{{ sportBreakdown.length }}</span>
@@ -255,6 +258,7 @@
             </div>
           </header>
           <div class="milestones-list">
+            <p v-if="!milestones.length" class="empty-hint">Completa les teves primeres sessions i estableix rècords per veure'ls aquí.</p>
             <div v-for="(m, i) in milestones" :key="m.id" class="milestone" :style="{ animationDelay: i * 50 + 'ms' }">
               <span class="milestone__icon" :class="`milestone__icon--${m.tone}`">
                 <span class="material-symbols-rounded icon-fill">{{ m.icon }}</span>
@@ -307,6 +311,7 @@
           </div>
         </header>
         <div class="pmc-chart">
+          <div class="svg-frame svg-frame--pmc">
           <svg :viewBox="`0 0 ${CW} ${PMC_H}`" preserveAspectRatio="none" class="chart-svg">
             <!-- Grid -->
             <g class="grid">
@@ -352,6 +357,7 @@
             <text :x="PAD_L - 6" :y="PMC_H - PAD_B + 4" text-anchor="end" class="axis-y">{{ pmcDomain.min }}</text>
             <text v-for="(w, i) in weeks" :key="'pmcl' + i" :x="bandX(i)" :y="PMC_H - 4" text-anchor="middle" class="axis-x">{{ w.wk }}</text>
           </svg>
+          </div>
           <!-- Verdict pills -->
           <div class="pmc-verdict">
             <span class="pmc-pill" :class="`pmc-pill--${pmcVerdict.tone}`">
@@ -520,19 +526,23 @@ import { computed, ref, watch } from 'vue'
 import AppTopBar from '@/components/layout/AppTopBar.vue'
 import { useUIStore } from '@/stores/uiStore'
 import { useWeekStore } from '@/stores/weekStore'
+import { useAuthStore } from '@/stores/authStore'
 
 const uiStore = useUIStore()
 const weekStore = useWeekStore()
+const authStore = useAuthStore()
+
+const isDemo = computed(() => authStore.user?.email === 'pau@nutrimove.app')
 
 // View switcher (only visible when advancedMetrics is enabled)
 const viewMode = ref('simple')
 watch(() => uiStore.advancedMetrics, (v) => { if (!v) viewMode.value = 'simple' })
 
 // ═══════════════════════════════════════════════════════════════════
-// SIMULATED PAST — 11 weeks of weekly aggregates for Pau Martínez
-// (current week is appended live from weekStore)
+// SIMULATED PAST — only shown for demo user (pau@nutrimove.app)
+// New users start with no history.
 // ═══════════════════════════════════════════════════════════════════
-const PAST = [
+const pastData = computed(() => isDemo.value ? [
   { wk: 'S-11', sessions: 3, hours: 2.8, kcal: 2100, weight: 78.6, adh: 65, tss: 210, ftp: 200, vo2: 50.8 },
   { wk: 'S-10', sessions: 4, hours: 3.8, kcal: 2850, weight: 78.4, adh: 70, tss: 305, ftp: 202, vo2: 51.0 },
   { wk: 'S-9',  sessions: 4, hours: 4.0, kcal: 2950, weight: 78.3, adh: 72, tss: 320, ftp: 204, vo2: 51.2 },
@@ -544,7 +554,7 @@ const PAST = [
   { wk: 'S-3',  sessions: 5, hours: 5.5, kcal: 3800, weight: 77.7, adh: 85, tss: 445, ftp: 218, vo2: 52.6 },
   { wk: 'S-2',  sessions: 6, hours: 6.8, kcal: 4500, weight: 77.5, adh: 88, tss: 525, ftp: 220, vo2: 52.8 },
   { wk: 'S-1',  sessions: 5, hours: 5.5, kcal: 3700, weight: 77.8, adh: 82, tss: 440, ftp: 220, vo2: 53.0 },
-]
+] : [])
 
 // Live current-week aggregates from weekStore
 const INTENSITY_FACTOR = { Baixa: 0.65, Moderada: 0.80, Alta: 0.95 }
@@ -563,20 +573,21 @@ const currentWeek = computed(() => {
     sessions: totals.totalSessions,
     hours,
     kcal: totals.totalKcalBurned,
-    weight: 78.0,   // simulated current weight
+    weight: authStore.user?.weight ?? 78.0,
     adh,
     tss,
-    ftp: 220,
-    vo2: 53.0,
+    ftp: isDemo.value ? 220 : 0,
+    vo2: isDemo.value ? 53.0 : 0,
   }
 })
 
-const weeks = computed(() => [...PAST, currentWeek.value])
+const weeks = computed(() => [...pastData.value, currentWeek.value])
 
 // ═══ Chart geometry ═══════════════════════════════════════════════
 const CW = 600
-const CH = 200
-const PMC_H = 240
+const CH = 200      // small line-charts (in 2-col layout)
+const WIDE_H = 144  // wide combo chart  — padding-bottom: 24% (= 144/600)
+const PMC_H = 168   // PMC chart         — padding-bottom: 28% (= 168/600)
 const PAD_L = 26
 const PAD_R = 12
 const PAD_T = 14
@@ -585,7 +596,8 @@ const BAR_W = 22
 
 const bandX = (i) => {
   const usable = CW - PAD_L - PAD_R
-  const n = Math.max(1, weeks.value.length)
+  const n = weeks.value.length
+  if (n <= 1) return PAD_L + usable / 2
   return PAD_L + (usable / (n - 1)) * i
 }
 
@@ -616,21 +628,33 @@ const areaPath = (values, max, min = 0, h = CH) => {
 const hoursMax = computed(() => Math.ceil(Math.max(...weeks.value.map(w => w.hours), 7)))
 const sessionsMax = computed(() => Math.max(...weeks.value.map(w => w.sessions), 7))
 
-const weightYDomain = { max: 79, min: 76 }
+const weightGoal = computed(() => {
+  const w = authStore.user?.weight ?? 78
+  return Math.round(w - 1)
+})
+const weightYDomain = computed(() => {
+  const w = authStore.user?.weight ?? 78
+  const g = weightGoal.value
+  return { max: Math.ceil(Math.max(w, g) + 1), min: Math.floor(Math.min(w, g) - 1) }
+})
 const ftpDomain = { max: 230, min: 195 }
 const vo2Domain = { max: 54, min: 50 }
 
 // ═══ Simple-view KPIs (last 4 weeks vs prev 4) ═════════════════════
-function avg(arr, key) { return arr.reduce((s, x) => s + x[key], 0) / arr.length }
+function avg(arr, key) {
+  if (!arr.length) return 0
+  return arr.reduce((s, x) => s + x[key], 0) / arr.length
+}
 
 const simpleKpis = computed(() => {
   const ws = weeks.value
   const last4 = ws.slice(-4)
   const prev4 = ws.slice(-8, -4)
-  const sLast = avg(last4, 'sessions'),  sPrev = avg(prev4, 'sessions')
-  const hLast = avg(last4, 'hours'),     hPrev = avg(prev4, 'hours')
-  const kLast = avg(last4, 'kcal'),      kPrev = avg(prev4, 'kcal')
-  const aLast = avg(last4, 'adh'),       aPrev = avg(prev4, 'adh')
+  const hasPrev = prev4.length > 0
+  const sLast = avg(last4, 'sessions'),  sPrev = hasPrev ? avg(prev4, 'sessions') : sLast
+  const hLast = avg(last4, 'hours'),     hPrev = hasPrev ? avg(prev4, 'hours') : hLast
+  const kLast = avg(last4, 'kcal'),      kPrev = hasPrev ? avg(prev4, 'kcal') : kLast
+  const aLast = avg(last4, 'adh'),       aPrev = hasPrev ? avg(prev4, 'adh') : aLast
 
   return [
     { icon: 'fitness_center',     label: 'Sessions/setmana',    value: sLast.toFixed(1), unit: '',     delta: sLast - sPrev, deltaPrecision: 1, tone: 'good' },
@@ -672,48 +696,65 @@ function adhTone(v) {
 }
 const adhAvgRecent = computed(() => Math.round(avg(weeks.value.slice(-4), 'adh')))
 
-// ═══ Sport breakdown (last 4 weeks, simulated) ═════════════════════
-const sportBreakdown = (() => {
-  const raw = [
-    { type: 'Ciclisme', icon: 'directions_bike', color: '#3B82F6', minutes: 720 },
-    { type: 'Natació',  icon: 'pool',            color: '#06B6D4', minutes: 240 },
-    { type: 'Força',    icon: 'fitness_center',  color: '#F59E0B', minutes: 220 },
-    { type: 'Curses',   icon: 'directions_run',  color: '#10B981', minutes: 180 },
-  ]
+// ═══ Sport breakdown — demo user: simulated; new user: live from sessions ═══
+const sportBreakdown = computed(() => {
+  if (isDemo.value) {
+    const raw = [
+      { type: 'Ciclisme', icon: 'directions_bike', color: '#3B82F6', minutes: 720 },
+      { type: 'Natació',  icon: 'pool',            color: '#06B6D4', minutes: 240 },
+      { type: 'Força',    icon: 'fitness_center',  color: '#F59E0B', minutes: 220 },
+      { type: 'Curses',   icon: 'directions_run',  color: '#10B981', minutes: 180 },
+    ]
+    const total = raw.reduce((s, x) => s + x.minutes, 0)
+    return raw.map(s => ({ ...s, pct: Math.round(s.minutes / total * 100) }))
+  }
+  const stypes = weekStore.sessionTypes
+  const sessionsMap = {}
+  weekStore.sessions.forEach(s => {
+    if (!sessionsMap[s.type]) {
+      const td = stypes[s.type] || {}
+      sessionsMap[s.type] = { type: td.label || s.type, icon: td.icon || 'fitness_center', color: td.color || '#94A3B8', minutes: 0 }
+    }
+    sessionsMap[s.type].minutes += s.duration
+  })
+  const raw = Object.values(sessionsMap)
   const total = raw.reduce((s, x) => s + x.minutes, 0)
+  if (!total) return []
   return raw.map(s => ({ ...s, pct: Math.round(s.minutes / total * 100) }))
-})()
+})
 const sportTotalLabel = computed(() => {
-  const total = sportBreakdown.reduce((s, x) => s + x.minutes, 0)
+  const total = sportBreakdown.value.reduce((s, x) => s + x.minutes, 0)
+  if (!total) return 'Sense sessions'
   const h = Math.floor(total / 60)
   const m = total % 60
   return m ? `${h}h ${m}min` : `${h}h`
 })
-const donutGradient = (() => {
+const donutGradient = computed(() => {
+  if (!sportBreakdown.value.length) return 'conic-gradient(var(--surface-3) 0% 100%)'
   let acc = 0
   const stops = []
-  sportBreakdown.forEach(s => {
+  sportBreakdown.value.forEach(s => {
     const start = acc
     acc += s.pct
     stops.push(`${s.color} ${start}% ${acc}%`)
   })
   return `conic-gradient(${stops.join(', ')})`
-})()
+})
 
 function formatMinutes(m) {
   const h = Math.floor(m / 60), r = m % 60
   return r ? `${h}h ${r}min` : `${h}h`
 }
 
-// ═══ Milestones ═════════════════════════════════════════════════════
-const milestones = [
+// ═══ Milestones — only shown for demo user ══════════════════════════
+const milestones = computed(() => isDemo.value ? [
   { id: 1, icon: 'emoji_events',    title: 'Ruta més llarga',     date: '13 abr', value: '87 km',     tone: 'good' },
   { id: 2, icon: 'electric_bolt',   title: 'PR FTP',              date: '8 abr',  value: '220 W',     tone: 'accent' },
   { id: 3, icon: 'fitness_center',  title: 'PR Squat',            date: '5 abr',  value: '100 kg',    tone: 'warm' },
   { id: 4, icon: 'pool',            title: 'Natació consecutiva', date: '1 abr',  value: '21 dies',   tone: 'cool' },
   { id: 5, icon: 'timer',           title: 'Millor 10k',          date: '24 mar', value: '48:23',     tone: 'good' },
   { id: 6, icon: 'monitor_heart',   title: 'FC repòs mínima',     date: '17 mar', value: '52 bpm',    tone: 'accent' },
-]
+] : [])
 
 // ═══════════════════════════════════════════════════════════════════
 // ADVANCED VIEW
@@ -949,10 +990,23 @@ const macroHistory = computed(() => weeks.value.map((w) => {
 .trend-pill--flat { background: var(--surface-3); color: var(--text-3); }
 
 /* ═══ SVG charts (shared) ═════════════════════════════════════════ */
-.chart-svg { width: 100%; display: block; height: auto; }
+.chart-svg { width: 100%; display: block; height: 100%; }
 .combo-chart, .line-chart, .pmc-chart { background: linear-gradient(180deg, var(--surface-2) 0%, var(--surface) 100%); border-radius: var(--radius-lg); padding: 12px; }
-.combo-chart svg, .line-chart svg { height: 200px; }
-.pmc-chart svg { height: 240px; }
+.line-chart svg { height: 200px; }
+
+/* Responsive aspect-ratio frame — padding-bottom = H/CW keeps x_scale == y_scale */
+.svg-frame {
+  position: relative;
+  width: 100%;
+  height: 0;
+  padding-bottom: 24%; /* WIDE_H/CW = 144/600 */
+}
+.svg-frame--pmc { padding-bottom: 28%; } /* PMC_H/CW = 168/600 */
+.svg-frame > svg {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+}
 
 .grid line { stroke: var(--border); stroke-width: 1; stroke-dasharray: 2 4; }
 .zero-line { stroke: var(--text-3); stroke-width: 1; stroke-dasharray: 4 4; opacity: 0.6; }
@@ -1145,6 +1199,15 @@ const macroHistory = computed(() => weeks.value.map((w) => {
 .macro-week__fill--fat     { background: linear-gradient(180deg, #F59E0B, #D97706); }
 .macro-week__label { font-size: 10px; color: var(--text-3); font-weight: 600; }
 .macro-week__label--current { color: var(--accent-dark); font-weight: 800; }
+
+/* ═══ Empty state hint ════════════════════════════════════════════ */
+.empty-hint {
+  font-size: 12px;
+  color: var(--text-3);
+  text-align: center;
+  padding: 20px 8px;
+  margin: 0;
+}
 
 /* ═══ Animations ══════════════════════════════════════════════════ */
 @keyframes fadeInUp {

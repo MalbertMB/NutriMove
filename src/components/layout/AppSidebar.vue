@@ -32,7 +32,7 @@
 
     <!-- User section -->
     <div class="sidebar__user">
-      <div class="user-avatar" aria-hidden="true">P</div>
+      <div class="user-avatar" aria-hidden="true">{{ authStore.userInitials }}</div>
       <transition name="fade">
         <div v-if="!collapsed" class="user-info">
           <span class="user-name">{{ authStore.user?.name || 'Usuari' }}</span>
