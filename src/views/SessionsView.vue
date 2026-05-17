@@ -301,6 +301,7 @@
             <h3 class="card__title">Patró setmanal</h3>
           </div>
 
+          <div class="rhythm-grid">
           <div class="rhythm-block">
             <div class="rhythm-block__title">Intensitat</div>
             <div class="bar-stack" :title="`Baixa ${intensityDist.Baixa}% · Moderada ${intensityDist.Moderada}% · Alta ${intensityDist.Alta}%`">
@@ -336,6 +337,7 @@
                 <span class="tod-cell__label">{{ bucket.short }}</span>
               </div>
             </div>
+          </div>
           </div>
         </div>
 
@@ -690,121 +692,7 @@
     </div>
 
     <!-- Info modal — opens when clicking any info icon on advanced metrics -->
-    <transition name="info-fade">
-      <div v-if="infoTopic" class="info-modal" role="dialog" aria-modal="true" @click.self="closeInfo" @keydown.esc="closeInfo">
-        <div class="info-modal__card">
-          <button class="info-modal__close" @click="closeInfo" aria-label="Tancar">
-            <span class="material-symbols-rounded">close</span>
-          </button>
-          <div class="info-modal__head">
-            <span class="info-modal__icon">
-              <span class="material-symbols-rounded icon-fill">{{ infoData.icon }}</span>
-            </span>
-            <h3 class="info-modal__title">{{ infoData.title }}</h3>
-          </div>
-          <p class="info-modal__body">{{ infoData.body }}</p>
-
-          <!-- Formula equation + variable legend -->
-          <div v-if="infoData.formula" class="info-modal__section">
-            <h4 class="info-modal__section-title">
-              <span class="material-symbols-rounded">function</span>
-              Com es calcula
-            </h4>
-            <div class="formula-eq">{{ infoData.formula.equation }}</div>
-            <div v-if="infoData.formula.legend" class="formula-legend">
-              <div v-for="l in infoData.formula.legend" :key="l.label" class="formula-legend__item">
-                <span class="formula-legend__label">{{ l.label }}</span>
-                <span class="formula-legend__value">{{ l.value }}</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Standalone legend (no formula) -->
-          <div v-if="!infoData.formula && infoData.legend" class="info-modal__section">
-            <h4 class="info-modal__section-title">
-              <span class="material-symbols-rounded">menu_book</span>
-              Llegenda
-            </h4>
-            <div class="formula-legend">
-              <div v-for="l in infoData.legend" :key="l.label" class="formula-legend__item">
-                <span class="formula-legend__label">{{ l.label }}</span>
-                <span class="formula-legend__value">{{ l.value }}</span>
-              </div>
-            </div>
-          </div>
-          <div v-else-if="infoData.legend && infoData.formula" class="info-modal__section info-modal__section--legend-only">
-            <h4 class="info-modal__section-title">
-              <span class="material-symbols-rounded">menu_book</span>
-              Franges
-            </h4>
-            <div class="formula-legend">
-              <div v-for="l in infoData.legend" :key="l.label" class="formula-legend__item">
-                <span class="formula-legend__label">{{ l.label }}</span>
-                <span class="formula-legend__value">{{ l.value }}</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Thresholds (colored pills) -->
-          <div v-if="infoData.thresholds" class="info-modal__section">
-            <h4 class="info-modal__section-title">
-              <span class="material-symbols-rounded">straighten</span>
-              Llindars de referència
-            </h4>
-            <div class="threshold-grid">
-              <div
-                v-for="t in infoData.thresholds"
-                :key="t.range"
-                class="threshold-pill"
-                :class="`threshold-pill--${t.tone}`"
-              >
-                <span class="threshold-pill__range">{{ t.range }}</span>
-                <span class="threshold-pill__label">{{ t.label }}</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Decision rules -->
-          <div v-if="infoData.rules" class="info-modal__section">
-            <h4 class="info-modal__section-title">
-              <span class="material-symbols-rounded">account_tree</span>
-              Regles de decisió
-            </h4>
-            <div class="rule-list">
-              <div v-for="r in infoData.rules" :key="r.condition" class="rule-row">
-                <code class="rule-cond">{{ r.condition }}</code>
-                <span class="material-symbols-rounded rule-arrow">arrow_forward</span>
-                <span class="rule-verdict" :class="`rule-verdict--${r.tone}`">{{ r.verdict }}</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Mapping -->
-          <div v-if="infoData.mapping" class="info-modal__section">
-            <h4 class="info-modal__section-title">
-              <span class="material-symbols-rounded">swap_horiz</span>
-              Correspondència
-            </h4>
-            <div class="mapping-list">
-              <div v-for="m in infoData.mapping" :key="m.from" class="mapping-row">
-                <span class="mapping-from">{{ m.from }}</span>
-                <span class="material-symbols-rounded mapping-arrow">arrow_forward</span>
-                <span class="mapping-to">{{ m.to }}</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Example with current data -->
-          <div v-if="infoData.example" class="info-modal__section info-modal__section--example">
-            <h4 class="info-modal__section-title">
-              <span class="material-symbols-rounded icon-fill">person</span>
-              Exemple amb les teves dades
-            </h4>
-            <div class="info-modal__example">{{ infoData.example }}</div>
-          </div>
-        </div>
-      </div>
-    </transition>
+    <InfoModal :topic="infoTopic" :topics="infoTopics" @close="closeInfo" />
 
     <SessionEditPanel />
     <AIPopover />
@@ -812,11 +700,12 @@
 </template>
 
 <script setup>
-import { computed, reactive, ref, watch, onMounted, onUnmounted } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import AppTopBar from '@/components/layout/AppTopBar.vue'
 import SessionEditPanel from '@/components/session/SessionEditPanel.vue'
 import LoadBadge from '@/components/ui/LoadBadge.vue'
 import AIPopover from '@/components/ai/AIPopover.vue'
+import InfoModal from '@/components/ui/InfoModal.vue'
 import { useWeekStore } from '@/stores/weekStore'
 import { useUIStore } from '@/stores/uiStore'
 
@@ -1310,16 +1199,11 @@ const infoTopic = ref(null)
 function openInfo(key) { infoTopic.value = key }
 function closeInfo() { infoTopic.value = null }
 
-function handleEsc(e) { if (e.key === 'Escape' && infoTopic.value) closeInfo() }
-onMounted(() => window.addEventListener('keydown', handleEsc))
-onUnmounted(() => window.removeEventListener('keydown', handleEsc))
-
-const infoData = computed(() => {
-  if (!infoTopic.value) return null
+const infoTopics = computed(() => {
   const d = weekStore.daysFull
   const topBucket = todBuckets.value.reduce((a, b) => b.count > a.count ? b : a, todBuckets.value[0])
-  switch (infoTopic.value) {
-    case 'tss': return {
+  return {
+    tss: {
       icon: 'monitoring', title: 'TSS — Training Stress Score',
       body: 'Una mesura sintètica de la càrrega total que combina volum (hores) i intensitat. Permet comparar setmanes i detectar pics o caigudes de càrrega.',
       formula: {
@@ -1337,8 +1221,8 @@ const infoData = computed(() => {
         { range: '> 700',     label: 'Excessiu',   tone: 'risk' },
       ],
       example: `Aquesta setmana acumules ${tss.value} TSS — zona "${tssZone.value.label}".`
-    }
-    case 'polar': return {
+    },
+    polar: {
       icon: 'donut_small', title: 'Polarització 80/20',
       body: 'La regla 80/20 diu que els atletes d\'elit fan al voltant del 80% del volum a baixa-moderada intensitat i només el 20% a alta. Acumular massa intensitat alta provoca fatiga sense millora extra.',
       formula: { equation: '% fàcil = (temps Baixa + temps Moderada) ÷ temps total' },
@@ -1347,8 +1231,8 @@ const infoData = computed(() => {
         { range: 'Fora',     label: 'Desequilibri', tone: 'warn' },
       ],
       example: `Tu fas ${polarization.value.easy}% a Baixa+Moderada i ${polarization.value.hard}% a Alta. ${polarization.value.ok ? '✓ Estàs dins del rang ideal.' : '⚠ Estàs fora del rang ideal.'}`
-    }
-    case 'acw': return {
+    },
+    acw: {
       icon: 'compare_arrows', title: 'Càrrega aguda vs crònica (AC:W)',
       body: 'Compara la càrrega d\'aquesta setmana (aguda) amb la mitjana de les últimes 4 setmanes (crònica, simulada en aquesta demo). Salts bruscos de càrrega s\'associen amb risc de lesió.',
       formula: {
@@ -1365,8 +1249,8 @@ const infoData = computed(() => {
         { range: '> 1.5',     label: 'Risc lesió',     tone: 'risk' },
       ],
       example: `Aguda = ${tss.value} TSS · Crònica = ${CHRONIC_BASELINE} TSS · Ratio = ${acwRatio.value.ratio} → ${acwRatio.value.label}.`
-    }
-    case 'risk': return {
+    },
+    risk: {
       icon: 'health_and_safety', title: 'Risc d\'overtraining',
       body: 'Indicador qualitatiu que combina el TSS setmanal i el nombre de dies amb sessions de càrrega alta no compensades. Et pot avisar de fatiga acumulada abans no afecti el rendiment.',
       rules: [
@@ -1376,8 +1260,8 @@ const infoData = computed(() => {
         { condition: 'Resta de casos',            verdict: 'Saludable',  tone: 'good' },
       ],
       example: `Tens ${totals.value.highLoadDays} dia${totals.value.highLoadDays !== 1 ? 's' : ''} de càrrega alta i un TSS de ${tss.value} → "${overtrainingRisk.value.label}".`
-    }
-    case 'tssPerDay': return {
+    },
+    tssPerDay: {
       icon: 'bar_chart', title: 'Càrrega per dia (TSS)',
       body: 'Distribució del TSS entre els 7 dies de la setmana. Útil per detectar pics i evitar acumular massa intensitat seguida sense recuperació.',
       formula: { equation: 'TSS_dia = Σ TSS de cada sessió del dia' },
@@ -1390,8 +1274,8 @@ const infoData = computed(() => {
       example: maxTssPerDay.value > 0
         ? `Pic: ${d[tssPerDay.value.indexOf(maxTssPerDay.value)]} amb ${maxTssPerDay.value} TSS. Mitjana per dia entrenat: ${trainingDays.value ? Math.round(tss.value / trainingDays.value) : 0} TSS.`
         : 'Encara no hi ha sessions aquesta setmana.'
-    }
-    case 'zones': return {
+    },
+    zones: {
       icon: 'favorite', title: 'Volum per zones FC',
       body: 'Distribució estimada del temps en cada zona de freqüència cardíaca, mapejada des de la intensitat declarada (no requereix sensor). Z1=recuperació activa, Z2=base aeròbica, Z3=tempo, Z4=llindar anaeròbic, Z5=VO₂max.',
       mapping: [
@@ -1402,8 +1286,8 @@ const infoData = computed(() => {
       example: hrZones.value.some(z => z.min > 0)
         ? `Els teus minuts: ${hrZones.value.map(z => `${z.key}=${z.min}'`).join(' · ')}.`
         : 'Encara no hi ha sessions aquesta setmana.'
-    }
-    case 'heatmap': return {
+    },
+    heatmap: {
       icon: 'grid_on', title: 'Heatmap horari',
       body: 'Visualització en graella de minuts entrenats per dia × franja horària. Et permet identificar el teu patró d\'entrenament al llarg de la setmana.',
       formula: { equation: 'cel·la = Σ minuts amb hora_inici dins la franja, en aquell dia' },
@@ -1416,16 +1300,16 @@ const infoData = computed(() => {
       example: maxHeatmapMin.value > 0 && topBucket
         ? `Franja predominant: ${topBucket.label.toLowerCase()} amb ${topBucket.count} sessió${topBucket.count !== 1 ? 's' : ''}. Cel·la més carregada: ${maxHeatmapMin.value} min.`
         : 'Encara no hi ha sessions aquesta setmana.'
-    }
-    case 'topSessions': return {
+    },
+    topSessions: {
       icon: 'leaderboard', title: 'Top sessions',
       body: 'Les 5 sessions de la setmana ordenades pel seu TSS individual. Identifica les més exigents per planificar la recuperació al voltant.',
       formula: { equation: 'sessions ordenades per TSS individual descendent' },
       example: peakSession.value
         ? `La més intensa: "${peakSession.value.label}" del ${d[peakSession.value.day]} — ${peakSession.value.tss} TSS (${peakSession.value.duration} min, ${peakSession.value.intensity}).`
         : 'Encara no hi ha sessions aquesta setmana.'
-    }
-    case 'duration': return {
+    },
+    duration: {
       icon: 'timelapse', title: 'Distribució per durada',
       body: 'Quantes sessions tens a cada rang de durada. Un bon balanç combina sessions curtes (recuperació o intensitat) i llargues (resistència).',
       mapping: [
@@ -1437,8 +1321,8 @@ const infoData = computed(() => {
       example: durationBuckets.value.some(b => b.count > 0)
         ? `Tu tens: ${durationBuckets.value.map(b => `${b.count} ${b.label.toLowerCase()}`).join(' · ')}.`
         : 'Encara no hi ha sessions aquesta setmana.'
-    }
-    case 'density': return {
+    },
+    density: {
       icon: 'stadia_controller', title: 'Densitat d\'entrenament',
       body: 'Quin percentatge del teu temps despert dediques a entrenar. És un indicador de "compromís" amb el pla.',
       formula: {
@@ -1451,8 +1335,8 @@ const infoData = computed(() => {
         { range: '7%+',  label: 'Atleta dedicat',  tone: 'warn' },
       ],
       example: `Aquesta setmana: ${density.value}% (≈ ${(density.value * 1.12).toFixed(1)} h/setmana).`
-    }
-    case 'recovery': return {
+    },
+    recovery: {
       icon: 'bedtime', title: 'Pausa mitjana entre sessions',
       body: 'Hores mitjanes de descans entre cada parell de sessions consecutives, ordenades per dia i hora d\'inici. Pauses curtes recurrents poden indicar acumulació de fatiga.',
       formula: {
@@ -1466,22 +1350,21 @@ const infoData = computed(() => {
       example: avgRecoveryGap.value !== null
         ? `Mitjana actual: ${avgRecoveryGap.value}h.`
         : 'Calen almenys 2 sessions a la setmana per calcular-la.'
-    }
-    case 'rest': return {
+    },
+    rest: {
       icon: 'hotel', title: 'Descans més llarg',
       body: 'El nombre màxim de dies consecutius dins la setmana sense cap sessió. Útil per assegurar un mínim de descans setmanal i detectar setmanes amb massa volum.',
       formula: { equation: 'max(streak de dies sense sessions)' },
       example: `El teu descans més llarg aquesta setmana és de ${longestRestStreak.value} dia${longestRestStreak.value !== 1 ? 's' : ''} consecutiu${longestRestStreak.value !== 1 ? 's' : ''}.`
-    }
-    case 'peak': return {
+    },
+    peak: {
       icon: 'whatshot', title: 'Pic d\'intensitat',
       body: 'La sessió individual amb major TSS de la setmana. Ajuda a identificar la sessió "rei" que defineix el pic de fatiga i requereix més recuperació al voltant.',
       formula: { equation: 'pic = max(TSS_sessió) entre totes les sessions de la setmana' },
       example: peakSession.value
         ? `Pic: ${peakSession.value.tss} TSS — "${peakSession.value.label}" del ${d[peakSession.value.day]} (${peakSession.value.duration} min, ${peakSession.value.intensity}).`
         : 'Encara no hi ha sessions aquesta setmana.'
-    }
-    default: return null
+    },
   }
 })
 </script>
@@ -1744,28 +1627,35 @@ const infoData = computed(() => {
 /* ─── RIGHT COLUMN (no scroll) ───────────────────────── */
 .sessions-right {
   display: flex; flex-direction: column;
-  gap: 12px;
+  gap: 8px;
   min-height: 0;
-  overflow-y: auto;
+  height: 100%;
+  overflow: hidden;
   padding-right: 4px;
 }
-.sessions-right::-webkit-scrollbar { width: 4px; }
-.sessions-right::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 99px; }
 
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);
-  padding: 14px 16px;
+  padding: 10px 12px;
   box-shadow: var(--shadow-sm);
   flex-shrink: 0;
 }
+/* Type-dist absorbs the spare vertical space so we don't leave dead area
+   and avoid the inner scrollbar until truly many session types exist. */
+.card.type-dist {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
 .card__head {
   display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
-.card__title { font-family: var(--font-display); font-size: 13px; font-weight: 700; color: var(--text); }
-.card__hint { font-size: 11px; color: var(--text-3); }
+.card__title { font-family: var(--font-display); font-size: 12px; font-weight: 700; color: var(--text); }
+.card__hint { font-size: 10px; color: var(--text-3); }
 
 /* Stats card */
 .streak-pill {
@@ -1778,16 +1668,16 @@ const infoData = computed(() => {
 }
 .streak-pill .material-symbols-rounded { font-size: 13px; }
 
-.stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
 .stat-mini {
   text-align: center;
-  padding: 8px 4px;
+  padding: 6px 4px;
   background: var(--surface-2);
   border-radius: var(--radius-md);
   display: flex; flex-direction: column; gap: 1px;
 }
 .stat-mini__num {
-  font-family: var(--font-display); font-size: 18px; font-weight: 800;
+  font-family: var(--font-display); font-size: 16px; font-weight: 800;
   color: var(--text); line-height: 1.1;
 }
 .stat-mini__num--warn { color: var(--warning); }
@@ -1804,46 +1694,56 @@ const infoData = computed(() => {
 
 .meta-row {
   display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
-  font-size: 11px; color: var(--text-3);
-  margin-top: 10px;
-  padding-top: 10px;
+  font-size: 10px; color: var(--text-3);
+  margin-top: 8px;
+  padding-top: 8px;
   border-top: 1px dashed var(--border);
 }
 .meta-row strong { color: var(--text); font-weight: 700; }
 .meta-sep { color: var(--text-3); }
 
 /* Type distribution (compact) */
-.type-dist__list { display: flex; flex-direction: column; gap: 8px; max-height: 165px; overflow-y: auto; }
+.type-dist__list {
+  display: flex; flex-direction: column; gap: 6px;
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
+}
 .type-dist__list::-webkit-scrollbar { width: 3px; }
 .type-dist__list::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 99px; }
 
-.type-row { display: flex; flex-direction: column; gap: 3px; }
+.type-row { display: flex; flex-direction: column; gap: 2px; }
 .type-row__head { display: flex; align-items: center; gap: 6px; }
 .type-row__icon {
-  width: 22px; height: 22px;
+  width: 20px; height: 20px;
   border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--td-color) 15%, transparent);
   display: flex; align-items: center; justify-content: center;
 }
-.type-row__icon .material-symbols-rounded { font-size: 13px; color: var(--td-color); }
-.type-row__label { font-size: 12px; font-weight: 600; color: var(--text); flex: 1; }
-.type-row__count { font-size: 11px; font-weight: 700; color: var(--td-color); }
-.type-row__bar { height: 4px; background: var(--surface-3); border-radius: 99px; overflow: hidden; }
+.type-row__icon .material-symbols-rounded { font-size: 12px; color: var(--td-color); }
+.type-row__label { font-size: 11px; font-weight: 600; color: var(--text); flex: 1; }
+.type-row__count { font-size: 10px; font-weight: 700; color: var(--td-color); }
+.type-row__bar { height: 3px; background: var(--surface-3); border-radius: 99px; overflow: hidden; }
 .type-row__fill { height: 100%; background: var(--td-color); border-radius: 99px; transition: width 0.6s var(--ease); }
-.type-row__meta { display: flex; flex-wrap: wrap; gap: 4px; font-size: 10px; color: var(--text-3); }
+.type-row__meta { display: flex; flex-wrap: wrap; gap: 4px; font-size: 9px; color: var(--text-3); }
 
 .empty-hint { font-size: 11px; color: var(--text-3); padding: 4px 0; }
 
 /* Rhythm card */
-.rhythm-block { display: flex; flex-direction: column; gap: 5px; }
-.rhythm-block + .rhythm-block { margin-top: 10px; }
+.rhythm-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.rhythm-block { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.rhythm-block + .rhythm-block { margin-top: 0; }
 .rhythm-block__title {
-  font-size: 10px; font-weight: 700; color: var(--text-3);
+  font-size: 9px; font-weight: 700; color: var(--text-3);
   text-transform: uppercase; letter-spacing: 0.5px;
 }
 
 .bar-stack {
-  display: flex; height: 16px;
+  display: flex; height: 14px;
   border-radius: 99px;
   overflow: hidden;
   background: var(--surface-3);
@@ -1865,10 +1765,10 @@ const infoData = computed(() => {
 .legend__dot--mid  { background: #F59E0B; }
 .legend__dot--high { background: #EF4444; }
 
-.tod-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.tod-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; }
 .tod-cell {
-  display: flex; flex-direction: column; align-items: center; gap: 1px;
-  padding: 8px 4px;
+  display: flex; flex-direction: column; align-items: center; gap: 0;
+  padding: 5px 2px;
   border-radius: var(--radius-md);
   background: var(--surface-2);
   transition: all var(--dur-fast);
@@ -1877,14 +1777,14 @@ const infoData = computed(() => {
   background: var(--accent-light);
   outline: 1.5px solid var(--accent);
 }
-.tod-cell .material-symbols-rounded { font-size: 16px; color: var(--text-3); }
+.tod-cell .material-symbols-rounded { font-size: 14px; color: var(--text-3); }
 .tod-cell--top .material-symbols-rounded { color: var(--accent-dark); }
 .tod-cell__count {
-  font-family: var(--font-display); font-size: 14px; font-weight: 800;
+  font-family: var(--font-display); font-size: 13px; font-weight: 800;
   color: var(--text); line-height: 1;
 }
 .tod-cell__label {
-  font-size: 9px; font-weight: 600; color: var(--text-3);
+  font-size: 8px; font-weight: 600; color: var(--text-3);
   text-transform: uppercase; letter-spacing: 0.3px;
 }
 
@@ -1906,12 +1806,12 @@ const infoData = computed(() => {
   box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 35%, transparent);
 }
 
-.goals-list { display: flex; flex-direction: column; gap: 12px; }
+.goals-list { display: flex; flex-direction: column; gap: 8px; }
 
-.goal-row { display: flex; flex-direction: column; gap: 5px; }
-.goal-row__head { display: flex; align-items: center; gap: 8px; }
+.goal-row { display: flex; flex-direction: column; gap: 3px; }
+.goal-row__head { display: flex; align-items: center; gap: 6px; }
 .goal-row__icon {
-  width: 24px; height: 24px;
+  width: 20px; height: 20px;
   border-radius: var(--radius-sm);
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
@@ -1919,18 +1819,18 @@ const infoData = computed(() => {
   color: var(--text-3);
   transition: background var(--dur-fast), color var(--dur-fast);
 }
-.goal-row__icon .material-symbols-rounded { font-size: 14px; }
+.goal-row__icon .material-symbols-rounded { font-size: 12px; }
 .goal-row__icon--good { background: var(--accent-light); color: var(--accent-dark); }
 .goal-row__icon--mid  { background: color-mix(in srgb, #F59E0B 16%, transparent); color: #B45309; }
 .goal-row__icon--low  { background: var(--surface-3); color: var(--text-3); }
 
-.goal-row__label { flex: 1; font-size: 12px; font-weight: 600; color: var(--text); }
-.goal-row__value { font-size: 12px; color: var(--text-2); white-space: nowrap; }
+.goal-row__label { flex: 1; font-size: 11px; font-weight: 600; color: var(--text); }
+.goal-row__value { font-size: 11px; color: var(--text-2); white-space: nowrap; }
 .goal-row__value strong { font-family: var(--font-display); font-weight: 800; color: var(--text); }
 .goal-row__value small { font-size: 11px; color: var(--text-3); margin-left: 1px; }
 
 .goal-row__bar {
-  height: 6px;
+  height: 5px;
   background: var(--surface-3);
   border-radius: 99px;
   overflow: hidden;
@@ -1945,8 +1845,8 @@ const infoData = computed(() => {
 .goal-row__fill--low  { background: linear-gradient(90deg, var(--border-2), var(--text-3)); }
 
 .goal-row__meta {
-  display: flex; align-items: center; gap: 5px;
-  font-size: 10px; color: var(--text-3);
+  display: flex; align-items: center; gap: 4px;
+  font-size: 9px; color: var(--text-3);
 }
 .goal-row__pct { font-weight: 800; }
 .goal-row__pct--good { color: var(--accent-dark); }
@@ -1981,51 +1881,49 @@ const infoData = computed(() => {
 
 /* ─── View switcher ──────────────────────────────────── */
 .view-switch {
-  position: relative;
-  display: inline-flex;
-  align-self: center;
-  margin: 12px auto 0;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 99px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  margin: 12px 24px 0;
   padding: 4px;
-  box-shadow: var(--shadow-sm);
-  overflow: hidden;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  position: relative;
+  width: fit-content;
+  isolation: isolate;
 }
 .view-switch__btn {
-  position: relative;
-  z-index: 1;
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 8px 18px;
-  border-radius: 99px;
-  font-size: 13px;
-  font-weight: 600;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 9px 18px;
+  border-radius: var(--radius-md);
+  font-size: 13px; font-weight: 600;
   color: var(--text-3);
-  background: transparent;
-  cursor: pointer;
+  position: relative; z-index: 1;
   transition: color var(--dur-fast);
+  cursor: pointer;
+  white-space: nowrap;
 }
 .view-switch__btn:hover { color: var(--text-2); }
 .view-switch__btn--active { color: var(--navy); }
-.view-switch__btn .material-symbols-rounded { font-size: 17px; }
+.view-switch__btn .material-symbols-rounded { font-size: 16px; }
 .view-switch__indicator {
-  position: absolute;
+  position: absolute; z-index: 0;
   top: 4px; bottom: 4px; left: 4px;
   width: calc(50% - 4px);
   background: var(--accent);
-  border-radius: 99px;
+  border-radius: var(--radius-md);
   box-shadow: 0 2px 6px color-mix(in srgb, var(--accent) 30%, transparent);
   transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
-  z-index: 0;
 }
+.view-switch__indicator--calendar { transform: translateX(0); }
 .view-switch__indicator--advanced { transform: translateX(100%); }
 .view-switch__badge {
-  font-size: 9px; font-weight: 800;
-  padding: 2px 6px;
-  border-radius: 99px;
+  font-size: 9px; font-weight: 800; letter-spacing: 0.5px;
+  padding: 2px 6px; border-radius: 99px;
   background: var(--navy);
   color: var(--accent);
-  letter-spacing: 0.5px;
+  text-transform: uppercase;
   margin-left: 2px;
 }
 .view-switch__btn--active .view-switch__badge { background: var(--navy); color: var(--accent); }
@@ -2596,7 +2494,7 @@ const infoData = computed(() => {
 .dur-bar__label { font-size: 12px; font-weight: 600; color: var(--text); }
 .dur-bar__sub { font-size: 10px; color: var(--text-3); }
 
-/* ─── Info button + tooltip + modal ───────────────────── */
+/* ─── Title row alignment for the info button ───────── */
 .adv-kpi__title-text {
   display: inline-flex;
   align-items: center;
@@ -2607,323 +2505,6 @@ const infoData = computed(() => {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-}
-
-.info-btn {
-  position: relative;
-  width: 18px; height: 18px;
-  display: inline-flex; align-items: center; justify-content: center;
-  border-radius: 50%;
-  color: var(--text-3);
-  background: transparent;
-  cursor: pointer;
-  transition: all var(--dur-fast);
-  flex-shrink: 0;
-  padding: 0;
-}
-.info-btn .material-symbols-rounded {
-  font-size: 15px;
-  font-variation-settings: 'FILL' 0, 'wght' 400;
-}
-.info-btn:hover {
-  color: var(--accent-dark);
-  background: var(--accent-light);
-}
-.info-btn:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
-}
-/* Dark variant — for KPI cards with navy background */
-.info-btn--dark { color: rgba(255,255,255,0.5); }
-.info-btn--dark:hover {
-  color: var(--accent);
-  background: rgba(0, 200, 150, 0.15);
-}
-
-/* Custom tooltip (replaces native title) */
-.info-btn::after {
-  content: attr(data-tip);
-  position: absolute;
-  bottom: calc(100% + 6px);
-  left: 50%;
-  transform: translateX(-50%) translateY(2px);
-  background: var(--navy);
-  color: white;
-  font-family: var(--font-body);
-  font-size: 11px;
-  font-weight: 500;
-  padding: 5px 9px;
-  border-radius: var(--radius-sm);
-  white-space: nowrap;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.18s ease, transform 0.18s ease;
-  z-index: 100;
-  box-shadow: var(--shadow-md);
-}
-.info-btn::before {
-  content: '';
-  position: absolute;
-  bottom: calc(100% + 2px);
-  left: 50%;
-  transform: translateX(-50%) translateY(2px);
-  border: 4px solid transparent;
-  border-top-color: var(--navy);
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.18s ease, transform 0.18s ease;
-  z-index: 100;
-}
-.info-btn:hover::after,
-.info-btn:hover::before,
-.info-btn:focus-visible::after,
-.info-btn:focus-visible::before {
-  opacity: 1;
-  transform: translateX(-50%) translateY(0);
-}
-
-/* Modal */
-.info-modal {
-  position: fixed;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.55);
-  backdrop-filter: blur(4px);
-  display: flex; align-items: center; justify-content: center;
-  z-index: 200;
-  padding: 24px;
-}
-.info-modal__card {
-  position: relative;
-  background: var(--surface);
-  border-radius: var(--radius-xl);
-  box-shadow: 0 24px 64px rgba(0,0,0,0.35);
-  padding: 28px 28px 24px;
-  width: 100%;
-  max-width: 540px;
-  max-height: calc(100vh - 80px);
-  overflow-y: auto;
-  display: flex; flex-direction: column; gap: 14px;
-}
-.info-modal__close {
-  position: absolute;
-  top: 14px; right: 14px;
-  width: 32px; height: 32px;
-  border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  color: var(--text-3);
-  background: transparent;
-  cursor: pointer;
-  transition: all var(--dur-fast);
-}
-.info-modal__close:hover { background: var(--surface-2); color: var(--text); }
-.info-modal__close .material-symbols-rounded { font-size: 18px; }
-
-.info-modal__head { display: flex; align-items: center; gap: 12px; }
-.info-modal__icon {
-  width: 40px; height: 40px;
-  border-radius: var(--radius-md);
-  background: var(--accent-light);
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-}
-.info-modal__icon .material-symbols-rounded { font-size: 22px; color: var(--accent-dark); }
-.info-modal__title {
-  font-family: var(--font-display);
-  font-size: 19px;
-  font-weight: 800;
-  color: var(--text);
-  line-height: 1.2;
-}
-
-.info-modal__body {
-  font-size: 14px;
-  color: var(--text-2);
-  line-height: 1.6;
-}
-
-.info-modal__section {
-  background: var(--surface-2);
-  border-left: 3px solid var(--accent);
-  border-radius: var(--radius-md);
-  padding: 12px 14px;
-  display: flex; flex-direction: column; gap: 8px;
-}
-.info-modal__section--example {
-  background: var(--accent-light);
-  border-left-color: var(--accent-dark);
-}
-.info-modal__section-title {
-  display: flex; align-items: center; gap: 6px;
-  font-size: 11px; font-weight: 800;
-  color: var(--text-2);
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-}
-.info-modal__section-title .material-symbols-rounded {
-  font-size: 14px;
-  color: var(--accent-dark);
-}
-/* Equation block — math-styled */
-.formula-eq {
-  font-family: 'Cambria', 'Times New Roman', Georgia, serif;
-  font-style: italic;
-  font-size: 17px;
-  font-weight: 500;
-  color: var(--text);
-  text-align: center;
-  padding: 14px 16px;
-  background: white;
-  border: 1px solid color-mix(in srgb, var(--accent) 25%, var(--border));
-  border-radius: var(--radius-md);
-  letter-spacing: 0.4px;
-  line-height: 1.45;
-  box-shadow: inset 0 0 0 4px var(--surface);
-}
-
-/* Legend grid (key-value pairs) */
-.formula-legend {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px;
-}
-.formula-legend__item {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 8px;
-  padding: 6px 10px;
-  background: var(--surface);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
-}
-.formula-legend__label {
-  font-size: 11px; font-weight: 600;
-  color: var(--text-3);
-  text-transform: uppercase; letter-spacing: 0.3px;
-}
-.formula-legend__value {
-  font-family: var(--font-display);
-  font-size: 13px; font-weight: 800;
-  color: var(--text);
-  font-variant-numeric: tabular-nums;
-}
-
-/* Thresholds — colored pills in a grid */
-.threshold-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 6px;
-}
-.threshold-pill {
-  display: flex; flex-direction: column; gap: 1px;
-  padding: 8px 10px;
-  border-radius: var(--radius-md);
-  border: 1px solid transparent;
-}
-.threshold-pill__range {
-  font-family: var(--font-display);
-  font-size: 13px; font-weight: 800;
-  font-variant-numeric: tabular-nums;
-}
-.threshold-pill__label {
-  font-size: 11px; font-weight: 600;
-}
-.threshold-pill--low {
-  background: color-mix(in srgb, #94A3B8 12%, var(--surface));
-  border-color: color-mix(in srgb, #94A3B8 30%, transparent);
-}
-.threshold-pill--low .threshold-pill__range  { color: var(--text-2); }
-.threshold-pill--low .threshold-pill__label  { color: var(--text-3); }
-.threshold-pill--good {
-  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
-  border-color: color-mix(in srgb, var(--accent) 35%, transparent);
-}
-.threshold-pill--good .threshold-pill__range { color: var(--accent-dark); }
-.threshold-pill--good .threshold-pill__label { color: var(--accent-dark); }
-.threshold-pill--warn {
-  background: color-mix(in srgb, #F97316 12%, var(--surface));
-  border-color: color-mix(in srgb, #F97316 35%, transparent);
-}
-.threshold-pill--warn .threshold-pill__range { color: #C2410C; }
-.threshold-pill--warn .threshold-pill__label { color: #C2410C; }
-.threshold-pill--risk {
-  background: color-mix(in srgb, #EF4444 12%, var(--surface));
-  border-color: color-mix(in srgb, #EF4444 35%, transparent);
-}
-.threshold-pill--risk .threshold-pill__range { color: #B91C1C; }
-.threshold-pill--risk .threshold-pill__label { color: #B91C1C; }
-
-/* Decision rules — condition → verdict */
-.rule-list { display: flex; flex-direction: column; gap: 6px; }
-.rule-row {
-  display: grid;
-  grid-template-columns: 1fr 18px auto;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
-  background: var(--surface);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border);
-}
-.rule-cond {
-  font-family: 'Cambria', 'Times New Roman', Georgia, serif;
-  font-style: italic;
-  font-size: 13px;
-  color: var(--text);
-  background: transparent;
-  padding: 0;
-}
-.rule-arrow { font-size: 16px; color: var(--text-3); }
-.rule-verdict {
-  font-size: 12px; font-weight: 700;
-  padding: 3px 10px;
-  border-radius: 99px;
-  white-space: nowrap;
-}
-.rule-verdict--low  { background: rgba(148, 163, 184, 0.15); color: var(--text-2); }
-.rule-verdict--good { background: var(--accent-light); color: var(--accent-dark); }
-.rule-verdict--warn { background: rgba(249, 115, 22, 0.15); color: #C2410C; }
-.rule-verdict--risk { background: rgba(239, 68, 68, 0.15); color: #B91C1C; }
-
-/* Mapping — from → to */
-.mapping-list { display: flex; flex-direction: column; gap: 4px; }
-.mapping-row {
-  display: grid;
-  grid-template-columns: 100px 18px 1fr;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
-  background: var(--surface);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border);
-}
-.mapping-from {
-  font-family: var(--font-display);
-  font-size: 13px; font-weight: 800;
-  color: var(--text);
-}
-.mapping-arrow { font-size: 16px; color: var(--accent); }
-.mapping-to {
-  font-family: 'Cambria', 'Times New Roman', Georgia, serif;
-  font-style: italic;
-  font-size: 13px;
-  color: var(--text-2);
-}
-.info-modal__example {
-  font-size: 13px;
-  color: var(--text);
-  line-height: 1.6;
-}
-
-.info-fade-enter-active, .info-fade-leave-active {
-  transition: opacity 0.2s ease;
-}
-.info-fade-enter-active .info-modal__card,
-.info-fade-leave-active .info-modal__card {
-  transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.2s ease;
-}
-.info-fade-enter-from, .info-fade-leave-to { opacity: 0; }
-.info-fade-enter-from .info-modal__card, .info-fade-leave-to .info-modal__card {
-  transform: translateY(12px) scale(0.96);
-  opacity: 0;
 }
 
 @media (max-width: 1100px) {

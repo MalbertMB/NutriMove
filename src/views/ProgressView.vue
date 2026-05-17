@@ -74,9 +74,14 @@
         <div class="combo-chart">
           <div class="svg-frame">
           <svg :viewBox="`0 0 ${CW} ${WIDE_H}`" preserveAspectRatio="none" class="chart-svg">
-            <!-- Y grid lines -->
+            <!-- Y grid lines aligned to nice ticks -->
             <g class="grid">
-              <line v-for="g in 4" :key="g" :x1="PAD_L" :x2="CW - PAD_R" :y1="PAD_T + g * (WIDE_H - PAD_T - PAD_B) / 4" :y2="PAD_T + g * (WIDE_H - PAD_T - PAD_B) / 4" />
+              <line
+                v-for="t in volumeScale.ticks" :key="'wg' + t"
+                :x1="PAD_L" :x2="CW - PAD_R"
+                :y1="yScale(t, volumeScale.max, 0, WIDE_H)"
+                :y2="yScale(t, volumeScale.max, 0, WIDE_H)"
+              />
             </g>
             <!-- Bars (hours) -->
             <g class="bars">
@@ -84,9 +89,9 @@
                 v-for="(w, i) in weeks"
                 :key="'b' + i"
                 :x="bandX(i) - BAR_W / 2"
-                :y="yScale(w.hours, hoursMax, 0, WIDE_H)"
+                :y="yScale(w.hours, volumeScale.max, 0, WIDE_H)"
                 :width="BAR_W"
-                :height="(WIDE_H - PAD_B) - yScale(w.hours, hoursMax, 0, WIDE_H)"
+                :height="(WIDE_H - PAD_B) - yScale(w.hours, volumeScale.max, 0, WIDE_H)"
                 rx="3"
                 :class="{ 'bar--current': i === weeks.length - 1 }"
               >
@@ -94,28 +99,33 @@
               </rect>
             </g>
             <!-- Sessions line -->
-            <path :d="linePath(weeks.map(w => w.sessions), sessionsMax, 0, WIDE_H)" class="line line--sessions" />
+            <path :d="linePath(weeks.map(w => w.sessions), sessionsScale.max, 0, WIDE_H)" class="line line--sessions" />
             <circle
               v-for="(w, i) in weeks"
               :key="'p' + i"
               :cx="bandX(i)"
-              :cy="yScale(w.sessions, sessionsMax, 0, WIDE_H)"
-              r="3.2"
+              :cy="yScale(w.sessions, sessionsScale.max, 0, WIDE_H)"
+              r="2.5"
               class="line-dot line-dot--sessions"
               :class="{ 'line-dot--current': i === weeks.length - 1 }"
             >
               <title>{{ w.wk }}: {{ w.sessions }} sessions</title>
             </circle>
-            <!-- X labels -->
-            <g class="axis-x">
-              <text v-for="(w, i) in weeks" :key="'l' + i" :x="bandX(i)" :y="WIDE_H - 4" text-anchor="middle">{{ w.wk }}</text>
-            </g>
-            <!-- Y axis (left = hours) -->
-            <g class="axis-y">
-              <text :x="PAD_L - 6" :y="PAD_T + 4" text-anchor="end">{{ hoursMax }}h</text>
-              <text :x="PAD_L - 6" :y="WIDE_H - PAD_B + 4" text-anchor="end">0</text>
-            </g>
           </svg>
+          <!-- HTML Y-axis labels (real px size, independent of SVG scale) -->
+          <div class="y-axis-overlay" aria-hidden="true">
+            <span
+              v-for="t in volumeScale.ticks" :key="'wyl' + t"
+              :style="{ top: yPercent(t, volumeScale.max, 0, WIDE_H) + '%' }"
+            >{{ t }}h</span>
+          </div>
+          <!-- HTML X-axis labels -->
+          <div class="x-axis-overlay" aria-hidden="true">
+            <span
+              v-for="(w, i) in weeks" :key="'xl' + i"
+              :style="{ left: (bandX(i) / CW * 100) + '%' }"
+            >{{ w.wk }}</span>
+          </div>
           </div>
         </div>
       </section>
@@ -278,18 +288,34 @@
     <!-- ═══ ADVANCED VIEW                                            ═══ -->
     <!-- ═══════════════════════════════════════════════════════════════ -->
     <div v-show="uiStore.advancedMetrics && viewMode === 'advanced'" class="progress-content">
-      <!-- Advanced KPI strip -->
-      <div class="kpi-strip kpi-strip--adv">
-        <div v-for="(k, i) in advKpis" :key="k.label" class="kpi" :style="{ animationDelay: i * 60 + 'ms' }">
-          <span class="kpi__icon" :class="`kpi__icon--${k.tone}`">
-            <span class="material-symbols-rounded icon-fill">{{ k.icon }}</span>
-          </span>
-          <div class="kpi__body">
-            <span class="kpi__label">{{ k.label }}</span>
-            <span class="kpi__value">
+      <!-- Advanced KPI row (dark navy gradient cards) -->
+      <div class="adv-kpi-row">
+        <div
+          v-for="(k, i) in advKpis"
+          :key="k.label"
+          class="adv-kpi"
+          :class="k.tone === 'good' ? 'adv-kpi--good' : k.tone === 'warn' ? 'adv-kpi--warn' : ''"
+          :style="{ animationDelay: i * 60 + 'ms' }"
+        >
+          <div class="adv-kpi__title">
+            <span class="adv-kpi__title-text">
+              <span class="material-symbols-rounded icon-fill">{{ k.icon }}</span>
+              {{ k.label }}
+              <button
+                class="info-btn info-btn--dark"
+                @click.stop="openInfo(k.key)"
+                data-tip="Clica per veure més info"
+                :aria-label="`Informació sobre ${k.label}`"
+              >
+                <span class="material-symbols-rounded">info</span>
+              </button>
+            </span>
+          </div>
+          <div class="adv-kpi__body">
+            <span class="adv-kpi__value">
               {{ k.value }}<small v-if="k.unit"> {{ k.unit }}</small>
             </span>
-            <span class="kpi__hint">{{ k.hint }}</span>
+            <span class="adv-kpi__hint">{{ k.hint }}</span>
           </div>
         </div>
       </div>
@@ -301,6 +327,9 @@
             <h3 class="chart-card__title">
               <span class="material-symbols-rounded icon-fill">monitoring</span>
               Performance Management Chart
+              <button class="info-btn" @click.stop="openInfo('pmc')" data-tip="Clica per veure més info" aria-label="Informació sobre PMC">
+                <span class="material-symbols-rounded">info</span>
+              </button>
             </h3>
             <span class="chart-card__sub">CTL (forma) · ATL (fatiga) · TSB (frescor) — 12 setmanes</span>
           </div>
@@ -313,9 +342,14 @@
         <div class="pmc-chart">
           <div class="svg-frame svg-frame--pmc">
           <svg :viewBox="`0 0 ${CW} ${PMC_H}`" preserveAspectRatio="none" class="chart-svg">
-            <!-- Grid -->
+            <!-- Grid aligned to nice ticks -->
             <g class="grid">
-              <line v-for="g in 4" :key="g" :x1="PAD_L" :x2="CW - PAD_R" :y1="PAD_T + g * (PMC_H - PAD_T - PAD_B) / 4" :y2="PAD_T + g * (PMC_H - PAD_T - PAD_B) / 4" />
+              <line
+                v-for="t in pmcDomain.ticks" :key="'pg' + t"
+                :x1="PAD_L" :x2="CW - PAD_R"
+                :y1="yScale(t, pmcDomain.max, pmcDomain.min, PMC_H)"
+                :y2="yScale(t, pmcDomain.max, pmcDomain.min, PMC_H)"
+              />
             </g>
             <!-- TSB area (positive=fresh, negative=fatigue) -->
             <path :d="pmcTsbArea" class="line-area line-area--purple" />
@@ -334,29 +368,39 @@
             <circle
               :cx="bandX(performanceCurve.length - 1)"
               :cy="yScale(performanceCurve.at(-1).ctl, pmcDomain.max, pmcDomain.min, PMC_H)"
-              r="3.5"
+              r="2.5"
               class="line-dot line-dot--current"
               style="fill: var(--accent)"
             ><title>CTL: {{ performanceCurve.at(-1).ctl }}</title></circle>
             <circle
               :cx="bandX(performanceCurve.length - 1)"
               :cy="yScale(performanceCurve.at(-1).atl, pmcDomain.max, pmcDomain.min, PMC_H)"
-              r="3.5"
+              r="2.5"
               class="line-dot line-dot--current"
               style="fill: #EF4444"
             ><title>ATL: {{ performanceCurve.at(-1).atl }}</title></circle>
             <circle
               :cx="bandX(performanceCurve.length - 1)"
               :cy="yScale(performanceCurve.at(-1).tsb, pmcDomain.max, pmcDomain.min, PMC_H)"
-              r="3.5"
+              r="2.5"
               class="line-dot line-dot--current"
               style="fill: var(--purple)"
             ><title>TSB: {{ performanceCurve.at(-1).tsb }}</title></circle>
-            <!-- Axes -->
-            <text :x="PAD_L - 6" :y="PAD_T + 4" text-anchor="end" class="axis-y">{{ pmcDomain.max }}</text>
-            <text :x="PAD_L - 6" :y="PMC_H - PAD_B + 4" text-anchor="end" class="axis-y">{{ pmcDomain.min }}</text>
-            <text v-for="(w, i) in weeks" :key="'pmcl' + i" :x="bandX(i)" :y="PMC_H - 4" text-anchor="middle" class="axis-x">{{ w.wk }}</text>
           </svg>
+          <!-- HTML Y-axis labels (real px size, independent of SVG scale) -->
+          <div class="y-axis-overlay" aria-hidden="true">
+            <span
+              v-for="t in pmcDomain.ticks" :key="'pyl' + t"
+              :style="{ top: yPercent(t, pmcDomain.max, pmcDomain.min, PMC_H) + '%' }"
+            >{{ t }}</span>
+          </div>
+          <!-- HTML X-axis labels -->
+          <div class="x-axis-overlay" aria-hidden="true">
+            <span
+              v-for="(w, i) in weeks" :key="'pmcl' + i"
+              :style="{ left: (bandX(i) / CW * 100) + '%' }"
+            >{{ w.wk }}</span>
+          </div>
           </div>
           <!-- Verdict pills -->
           <div class="pmc-verdict">
@@ -377,6 +421,9 @@
               <h3 class="chart-card__title">
                 <span class="material-symbols-rounded icon-fill">electric_bolt</span>
                 Progressió FTP
+                <button class="info-btn" @click.stop="openInfo('ftpChart')" data-tip="Clica per veure més info" aria-label="Informació sobre FTP">
+                  <span class="material-symbols-rounded">info</span>
+                </button>
               </h3>
               <span class="chart-card__sub">Functional Threshold Power · W</span>
             </div>
@@ -414,6 +461,9 @@
               <h3 class="chart-card__title">
                 <span class="material-symbols-rounded icon-fill">favorite</span>
                 VO₂max estimat
+                <button class="info-btn" @click.stop="openInfo('vo2Chart')" data-tip="Clica per veure més info" aria-label="Informació sobre VO2max">
+                  <span class="material-symbols-rounded">info</span>
+                </button>
               </h3>
               <span class="chart-card__sub">ml/kg/min · franja "Excel·lent" 50–55</span>
             </div>
@@ -458,6 +508,9 @@
             <h3 class="chart-card__title">
               <span class="material-symbols-rounded icon-fill">monitor_heart</span>
               Distribució per zones FC
+              <button class="info-btn" @click.stop="openInfo('zones')" data-tip="Clica per veure més info" aria-label="Informació sobre zones FC">
+                <span class="material-symbols-rounded">info</span>
+              </button>
             </h3>
             <span class="chart-card__sub">Minuts per setmana · Z1 recuperació → Z5 VO₂max</span>
           </div>
@@ -491,6 +544,9 @@
             <h3 class="chart-card__title">
               <span class="material-symbols-rounded icon-fill">analytics</span>
               Adherència de macronutrients
+              <button class="info-btn" @click.stop="openInfo('macros')" data-tip="Clica per veure més info" aria-label="Informació sobre macronutrients">
+                <span class="material-symbols-rounded">info</span>
+              </button>
             </h3>
             <span class="chart-card__sub">% setmanes que assoleixen l'objectiu de cada macro</span>
           </div>
@@ -518,12 +574,15 @@
         </div>
       </section>
     </div>
+
+    <InfoModal :topic="infoTopic" :topics="infoTopics" @close="closeInfo" />
   </div>
 </template>
 
 <script setup>
 import { computed, ref, watch } from 'vue'
 import AppTopBar from '@/components/layout/AppTopBar.vue'
+import InfoModal from '@/components/ui/InfoModal.vue'
 import { useUIStore } from '@/stores/uiStore'
 import { useWeekStore } from '@/stores/weekStore'
 import { useAuthStore } from '@/stores/authStore'
@@ -586,13 +645,45 @@ const weeks = computed(() => [...pastData.value, currentWeek.value])
 // ═══ Chart geometry ═══════════════════════════════════════════════
 const CW = 600
 const CH = 200      // small line-charts (in 2-col layout)
-const WIDE_H = 144  // wide combo chart  — padding-bottom: 24% (= 144/600)
-const PMC_H = 168   // PMC chart         — padding-bottom: 28% (= 168/600)
-const PAD_L = 26
+const WIDE_H = 100  // wide combo chart
+const PMC_H = 115   // PMC chart
+const PAD_L = 28
 const PAD_R = 12
-const PAD_T = 14
-const PAD_B = 22
-const BAR_W = 22
+const PAD_T = 10
+const PAD_B = 16
+const BAR_W = 8     // thinner bars
+
+// Y-axis label position (as % of SVG frame height) — used by HTML overlays
+function yPercent(v, max, min, h, padT = PAD_T, padB = PAD_B) {
+  const usable = h - padT - padB
+  return ((padT + usable * (1 - (v - min) / Math.max(1e-9, max - min))) / h) * 100
+}
+
+// "Nice" round-number scale: returns {min, max, step, ticks}
+// that round to friendly values (1, 2, 5 * 10^n) for Y axes.
+function niceScale(min, max, maxTicks = 5) {
+  if (!isFinite(min) || !isFinite(max) || min === max) {
+    const v = max || 1
+    return { min: 0, max: v, step: v, ticks: [0, v] }
+  }
+  const range = max - min
+  const roughStep = range / Math.max(1, maxTicks - 1)
+  const magnitude = Math.pow(10, Math.floor(Math.log10(Math.abs(roughStep))))
+  const normalized = roughStep / magnitude
+  let niceStep
+  if (normalized <= 1) niceStep = 1
+  else if (normalized <= 2) niceStep = 2
+  else if (normalized <= 5) niceStep = 5
+  else niceStep = 10
+  const step = niceStep * magnitude
+  const niceMin = Math.floor(min / step) * step
+  const niceMax = Math.ceil(max / step) * step
+  const ticks = []
+  for (let v = niceMin; v <= niceMax + step * 0.001; v += step) {
+    ticks.push(Math.round(v * 1e6) / 1e6)
+  }
+  return { min: niceMin, max: niceMax, step, ticks }
+}
 
 const bandX = (i) => {
   const usable = CW - PAD_L - PAD_R
@@ -627,6 +718,10 @@ const areaPath = (values, max, min = 0, h = CH) => {
 
 const hoursMax = computed(() => Math.ceil(Math.max(...weeks.value.map(w => w.hours), 7)))
 const sessionsMax = computed(() => Math.max(...weeks.value.map(w => w.sessions), 7))
+
+// Nice round-number scales for the affected charts
+const volumeScale = computed(() => niceScale(0, hoursMax.value, 5))
+const sessionsScale = computed(() => niceScale(0, sessionsMax.value, 5))
 
 const weightGoal = computed(() => {
   const w = authStore.user?.weight ?? 78
@@ -775,7 +870,9 @@ const performanceCurve = computed(() => {
 })
 const pmcDomain = computed(() => {
   const all = performanceCurve.value.flatMap(p => [p.ctl, p.atl, p.tsb])
-  return { max: Math.ceil(Math.max(...all) / 10) * 10, min: Math.floor(Math.min(...all, 0) / 10) * 10 }
+  const raw = { max: Math.max(...all), min: Math.min(...all, 0) }
+  const ns = niceScale(raw.min, raw.max, 5)
+  return { max: ns.max, min: ns.min, ticks: ns.ticks }
 })
 const pmcTsbArea = computed(() => {
   // Area between TSB line and zero, drawn as a polygon (positive=above, fills downward).
@@ -805,12 +902,114 @@ const advKpis = computed(() => {
   const last = performanceCurve.value.at(-1)
   const w = weeks.value.at(-1)
   return [
-    { icon: 'monitoring',     label: 'CTL (forma)',    value: last.ctl, unit: '',  hint: 'Volum crònic 42d', tone: 'accent' },
-    { icon: 'bolt',           label: 'ATL (fatiga)',   value: last.atl, unit: '',  hint: 'Càrrega aguda 7d', tone: 'warm' },
-    { icon: 'sentiment_satisfied', label: 'TSB (frescor)', value: last.tsb >= 0 ? `+${last.tsb}` : last.tsb, unit: '', hint: 'CTL − ATL',       tone: last.tsb >= 0 ? 'good' : 'warn' },
-    { icon: 'electric_bolt',  label: 'FTP actual',     value: w.ftp,    unit: 'W', hint: `+${ftpDelta.value} W vs. S-11`, tone: 'good' },
-    { icon: 'favorite',       label: 'VO₂max',         value: w.vo2,    unit: '',  hint: `+${vo2Delta.value} en 12 set.`, tone: 'cool' },
+    { key: 'ctl', icon: 'monitoring',     label: 'CTL (forma)',    value: last.ctl, unit: '',  hint: 'Volum crònic 42d', tone: 'accent' },
+    { key: 'atl', icon: 'bolt',           label: 'ATL (fatiga)',   value: last.atl, unit: '',  hint: 'Càrrega aguda 7d', tone: 'warm' },
+    { key: 'tsb', icon: 'sentiment_satisfied', label: 'TSB (frescor)', value: last.tsb >= 0 ? `+${last.tsb}` : last.tsb, unit: '', hint: 'CTL − ATL',       tone: last.tsb >= 0 ? 'good' : 'warn' },
+    { key: 'ftp', icon: 'electric_bolt',  label: 'FTP actual',     value: w.ftp,    unit: 'W', hint: `+${ftpDelta.value} W vs. S-11`, tone: 'good' },
+    { key: 'vo2', icon: 'favorite',       label: 'VO₂max',         value: w.vo2,    unit: '',  hint: `+${vo2Delta.value} en 12 set.`, tone: 'cool' },
   ]
+})
+
+// ── Info modal ──
+const infoTopic = ref(null)
+function openInfo(key) { infoTopic.value = key }
+function closeInfo() { infoTopic.value = null }
+
+const infoTopics = computed(() => {
+  const last = performanceCurve.value.at(-1)
+  const w = weeks.value.at(-1)
+  return {
+    ctl: {
+      icon: 'monitoring', title: 'CTL — Chronic Training Load',
+      body: 'Mesura la càrrega d\'entrenament acumulada a llarg termini (42 dies). És un indicador de la teva "forma" o capacitat aeròbica. Pujar el CTL gradualment vol dir que estàs millorant.',
+      formula: {
+        equation: 'CTL_t = CTL_{t-1} + (1/42) × (TSS_t − CTL_{t-1})',
+        legend: [{ label: 'Constant', value: '42 dies' }],
+      },
+      example: `Aquesta setmana: CTL ${last.ctl}. Variació: ${last.ctl - performanceCurve.value[0].ctl >= 0 ? '+' : ''}${last.ctl - performanceCurve.value[0].ctl} vs. inici del període.`,
+    },
+    atl: {
+      icon: 'bolt', title: 'ATL — Acute Training Load',
+      body: 'Càrrega aguda a curt termini (7 dies). Reflecteix la fatiga recent acumulada. Si l\'ATL puja molt per sobre del CTL, el risc de sobreentrenament augmenta.',
+      formula: {
+        equation: 'ATL_t = ATL_{t-1} + (1/7) × (TSS_t − ATL_{t-1})',
+        legend: [{ label: 'Constant', value: '7 dies' }],
+      },
+      example: `ATL actual: ${last.atl}.`,
+    },
+    tsb: {
+      icon: 'sentiment_satisfied', title: 'TSB — Training Stress Balance',
+      body: 'Indicador de "frescor": diferència entre forma (CTL) i fatiga (ATL). TSB positiu = més fresc; TSB molt negatiu = fatiga acumulada elevada.',
+      formula: { equation: 'TSB = CTL − ATL' },
+      thresholds: [
+        { range: '> +15', label: 'Massa fresc', tone: 'low' },
+        { range: '−10 a +15', label: 'Frescor ideal', tone: 'good' },
+        { range: '−20 a −10', label: 'Càrrega productiva', tone: 'warn' },
+        { range: '< −20', label: 'Risc de fatiga', tone: 'risk' },
+      ],
+      example: `TSB actual: ${last.tsb >= 0 ? '+' : ''}${last.tsb}. ${last.tsb >= 0 ? 'Estàs fresc.' : 'Acumulant càrrega.'}`,
+    },
+    ftp: {
+      icon: 'electric_bolt', title: 'FTP — Functional Threshold Power',
+      body: 'La màxima potència sostenible durant aproximadament una hora. És la referència principal per ajustar zones d\'intensitat en ciclisme i guiar els entrenaments per llindar.',
+      formula: { equation: 'FTP ≈ 95% × millor potència mitjana 20 min' },
+      example: `FTP actual: ${w.ftp} W (${ftpDelta.value >= 0 ? '+' : ''}${ftpDelta.value} W vs. S-11).`,
+    },
+    vo2: {
+      icon: 'favorite', title: 'VO₂max',
+      body: 'Volum màxim d\'oxigen que el cos pot consumir per minut i kg. És un indicador clau de la capacitat aeròbica i el seu valor correlaciona amb el rendiment en endurance.',
+      thresholds: [
+        { range: '< 40', label: 'Mig-baix', tone: 'low' },
+        { range: '40 – 50', label: 'Bo', tone: 'good' },
+        { range: '50 – 55', label: 'Excel·lent', tone: 'good' },
+        { range: '> 55', label: 'Elit', tone: 'warn' },
+      ],
+      example: `VO₂max estimat: ${w.vo2} ml/kg/min (${vo2Delta.value >= 0 ? '+' : ''}${vo2Delta.value} en 12 set.).`,
+    },
+    pmc: {
+      icon: 'monitoring', title: 'Performance Management Chart',
+      body: 'Gràfic que combina CTL (forma), ATL (fatiga) i TSB (frescor) per visualitzar l\'evolució de l\'estat de forma. Ideal per planificar pics de forma i evitar sobrecarregues.',
+      formula: { equation: 'CTL i ATL = EWMA del TSS amb constants 42d i 7d' },
+      mapping: [
+        { from: 'CTL ↗', to: 'Millora forma' },
+        { from: 'ATL ↗↗', to: 'Augmenta fatiga' },
+        { from: 'TSB > 0', to: 'Fresc, llest per competir' },
+        { from: 'TSB << 0', to: 'Sobreentrenament' },
+      ],
+    },
+    ftpChart: {
+      icon: 'electric_bolt', title: 'Progressió FTP',
+      body: 'Evolució setmanal del FTP estimat. Una progressió ascendent suau indica una adaptació positiva. Salts grans poden indicar millores reals o errors d\'estimació.',
+      formula: { equation: 'FTP_set ≈ FTP_set-1 + Δ_adaptació' },
+      example: `+${ftpDelta.value} W en les últimes 12 setmanes (de ${weeks.value[0].ftp} a ${w.ftp} W).`,
+    },
+    vo2Chart: {
+      icon: 'favorite', title: 'Tendència VO₂max',
+      body: 'Evolució setmanal del VO₂max estimat. La franja "Excel·lent" (50–55 ml/kg/min) està destacada com a referència visual.',
+      example: `+${vo2Delta.value} ml/kg/min en 12 setmanes.`,
+    },
+    zones: {
+      icon: 'monitor_heart', title: 'Distribució per zones FC',
+      body: 'Minuts setmanals estimats a cada zona de freqüència cardíaca. La distribució òptima depèn de l\'objectiu, però en general predomina la Z2 (base aeròbica) seguida de pics curts a Z4-Z5.',
+      mapping: [
+        { from: 'Z1', to: 'Recuperació activa (50–60% FCmax)' },
+        { from: 'Z2', to: 'Base aeròbica (60–70%)' },
+        { from: 'Z3', to: 'Tempo (70–80%)' },
+        { from: 'Z4', to: 'Llindar (80–90%)' },
+        { from: 'Z5', to: 'VO₂max (90–100%)' },
+      ],
+    },
+    macros: {
+      icon: 'analytics', title: 'Adherència de macronutrients',
+      body: 'Percentatge de cada macronutrient (HC, proteïna, greixos) que s\'ha assolit respecte de l\'objectiu setmanal. Un valor proper al 100% indica que has cobert l\'objectiu nutricional.',
+      formula: { equation: '%_macro = (ingerit_setm ÷ objectiu_setm) × 100%' },
+      thresholds: [
+        { range: '≥ 90%', label: 'Compleix', tone: 'good' },
+        { range: '70 – 90%', label: 'Acceptable', tone: 'warn' },
+        { range: '< 70%', label: 'Per sota', tone: 'risk' },
+      ],
+    },
+  }
 })
 
 // Zone time per week — distribution scaled by intensity profile of the week.
@@ -890,13 +1089,48 @@ const macroHistory = computed(() => weeks.value.map((w) => {
 }
 .view-switch__btn--active .view-switch__badge { background: var(--navy); color: var(--accent); }
 
-/* ═══ KPI strip ═══════════════════════════════════════════════════ */
+/* ═══ Advanced KPI row (dark navy gradient — Sessions style) ══════ */
+.adv-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 14px;
+}
+.adv-kpi {
+  background: linear-gradient(135deg, var(--navy) 0%, var(--navy-2) 100%);
+  color: white;
+  border-radius: var(--radius-xl);
+  padding: 16px 18px;
+  box-shadow: var(--shadow-md);
+  display: flex; flex-direction: column; gap: 10px;
+  min-height: 130px;
+  animation: fadeInUp 0.4s var(--ease) both;
+}
+.adv-kpi--good { background: linear-gradient(135deg, #064E3B 0%, #065F46 100%); }
+.adv-kpi--warn { background: linear-gradient(135deg, #7C2D12 0%, #9A3412 100%); }
+.adv-kpi__title {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  font-size: 11px; font-weight: 700;
+  color: rgba(255,255,255,0.85);
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.adv-kpi__title-text { display: inline-flex; align-items: center; gap: 6px; }
+.adv-kpi__title .material-symbols-rounded { font-size: 16px; color: var(--accent); }
+.adv-kpi__body { display: flex; flex-direction: column; gap: 4px; }
+.adv-kpi__value {
+  font-family: var(--font-display); font-size: 30px; font-weight: 800;
+  color: white; line-height: 1;
+}
+.adv-kpi__value small { font-size: 13px; color: rgba(255,255,255,0.6); font-weight: 500; margin-left: 4px; }
+.adv-kpi__hint { font-size: 11px; color: rgba(255,255,255,0.55); }
+@media (max-width: 1100px) { .adv-kpi-row { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 700px)  { .adv-kpi-row { grid-template-columns: 1fr; } }
+
+/* ═══ KPI strip (simple view) ═════════════════════════════════════ */
 .kpi-strip {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 14px;
 }
-.kpi-strip--adv { grid-template-columns: repeat(5, 1fr); }
 .kpi {
   display: flex; align-items: flex-start; gap: 12px;
   background: var(--surface);
@@ -963,7 +1197,6 @@ const macroHistory = computed(() => weeks.value.map((w) => {
 @media (max-width: 1100px) {
   .chart-row--two { grid-template-columns: 1fr; }
   .kpi-strip { grid-template-columns: repeat(2, 1fr); }
-  .kpi-strip--adv { grid-template-columns: repeat(2, 1fr); }
 }
 
 /* ═══ Chart legend ════════════════════════════════════════════════ */
@@ -999,42 +1232,81 @@ const macroHistory = computed(() => weeks.value.map((w) => {
   position: relative;
   width: 100%;
   height: 0;
-  padding-bottom: 24%; /* WIDE_H/CW = 144/600 */
+  padding-bottom: 16.67%; /* WIDE_H/CW = 100/600 */
 }
-.svg-frame--pmc { padding-bottom: 28%; } /* PMC_H/CW = 168/600 */
+.svg-frame--pmc { padding-bottom: 19.17%; } /* PMC_H/CW = 115/600 */
 .svg-frame > svg {
   position: absolute;
   top: 0; left: 0;
   width: 100%; height: 100%;
 }
 
-.grid line { stroke: var(--border); stroke-width: 1; stroke-dasharray: 2 4; }
-.zero-line { stroke: var(--text-3); stroke-width: 1; stroke-dasharray: 4 4; opacity: 0.6; }
-.axis-x text, .axis-y text, text.axis-x, text.axis-y { font-size: 9px; fill: var(--text-3); font-weight: 600; }
+/* HTML Y-axis overlay — keeps tick labels at a fixed pixel size
+   independent of the SVG's responsive scaling. Width mirrors the SVG's
+   PAD_L area (28/600 ≈ 4.67% — give a bit more for breathing room). */
+.y-axis-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.y-axis-overlay > span {
+  position: absolute;
+  left: 0;
+  width: 4.5%;
+  min-width: 24px;
+  text-align: right;
+  padding-right: 4px;
+  transform: translateY(-50%);
+  font-size: 9px;
+  color: var(--text-3);
+  font-weight: 600;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.x-axis-overlay {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  pointer-events: none;
+  height: 16%;  /* matches the SVG's PAD_B reserved area for X labels */
+}
+.x-axis-overlay > span {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 9px;
+  color: var(--text-3);
+  font-weight: 600;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.grid line { stroke: var(--border); stroke-width: 1; stroke-dasharray: 2 4; vector-effect: non-scaling-stroke; }
+.zero-line { stroke: var(--text-3); stroke-width: 1; stroke-dasharray: 4 4; opacity: 0.6; vector-effect: non-scaling-stroke; }
+.axis-x text, .axis-y text, text.axis-x, text.axis-y { font-size: 6.5px; fill: var(--text-3); font-weight: 600; }
 
 .bars rect { fill: color-mix(in srgb, var(--accent) 60%, transparent); transition: fill var(--dur-fast); }
 .bars rect.bar--current { fill: var(--accent); }
 .bars rect:hover { fill: var(--accent-dark); }
 
-.line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.line { fill: none; stroke-width: 1; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
 .line--sessions { stroke: var(--purple); stroke-dasharray: 0; }
 .line--weight   { stroke: var(--accent-dark); }
 .line--ftp      { stroke: var(--accent-dark); }
 .line--vo2      { stroke: #0891B2; }
-.line--ctl      { stroke: var(--accent); stroke-width: 2.5; }
-.line--atl      { stroke: #EF4444; stroke-width: 2.5; }
-.line--tsb      { stroke: var(--purple); stroke-width: 2; stroke-dasharray: 4 3; }
+.line--ctl      { stroke: var(--accent); stroke-width: 1.4; }
+.line--atl      { stroke: #EF4444; stroke-width: 1.4; }
+.line--tsb      { stroke: var(--purple); stroke-width: 1; stroke-dasharray: 3 2; }
 
 .line-area      { fill: var(--accent-light); }
 .line-area--accent { fill: var(--accent-light); }
 .line-area--purple { fill: rgba(99, 102, 241, 0.10); }
 
-.line-dot { stroke: var(--surface); stroke-width: 1.5; }
+.line-dot { stroke: var(--surface); stroke-width: 1; vector-effect: non-scaling-stroke; }
 .line-dot--sessions { fill: var(--purple); }
 .line-dot--weight   { fill: var(--accent-dark); }
 .line-dot--ftp      { fill: var(--accent-dark); }
 .line-dot--vo2      { fill: #0891B2; }
-.line-dot--current  { stroke-width: 2.2; r: 4; }
+.line-dot--current  { stroke-width: 1.5; r: 3; }
 
 .goal-band { fill: color-mix(in srgb, var(--accent) 8%, transparent); }
 .goal-line { stroke: var(--accent); stroke-width: 1; stroke-dasharray: 3 3; opacity: 0.55; }

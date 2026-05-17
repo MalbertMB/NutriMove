@@ -225,36 +225,6 @@
           ></span>
         </div>
 
-        <div class="mode-pages">
-          <h4 class="mode-pages__title">
-            <span class="material-symbols-rounded">layers</span>
-            Pàgines amb vista avançada
-          </h4>
-          <div class="mode-pages__list">
-            <div
-              v-for="p in uiStore.advancedViewPages"
-              :key="p.key"
-              class="mode-page"
-              :class="{ 'mode-page--soon': !p.enabled }"
-            >
-              <span class="mode-page__icon">
-                <span class="material-symbols-rounded icon-fill">{{ p.icon }}</span>
-              </span>
-              <div class="mode-page__body">
-                <div class="mode-page__name-row">
-                  <span class="mode-page__name">{{ p.label }}</span>
-                  <span
-                    class="mode-page__status"
-                    :class="{ 'mode-page__status--ok': p.enabled }"
-                  >
-                    {{ p.enabled ? 'Disponible' : 'Properament' }}
-                  </span>
-                </div>
-                <span class="mode-page__desc">{{ p.description }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
       </section>
 
       <!-- ═══ Privacy / data ═════════════════════════════════════════ -->
@@ -874,82 +844,6 @@ function onLogout() {
   margin-top: 2px;
 }
 .mode-toggle__option--active .mode-toggle__sub { color: var(--text-2); }
-
-/* ═══ MODE PAGES (registry list) ══════════════════════════════════ */
-.mode-pages { margin-top: 4px; }
-.mode-pages__title {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-family: var(--font-display);
-  font-size: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-  color: var(--text-2);
-  margin-bottom: 12px;
-}
-.mode-pages__title .material-symbols-rounded { font-size: 14px; color: var(--accent); }
-.mode-pages__list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 10px;
-}
-.mode-page {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 12px;
-  border-radius: var(--radius-md);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  transition: border-color var(--dur-fast), background var(--dur-fast);
-}
-.mode-page:not(.mode-page--soon):hover {
-  border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
-}
-.mode-page--soon { opacity: 0.78; }
-.mode-page__icon {
-  width: 32px; height: 32px;
-  border-radius: var(--radius-sm-plus);
-  background: var(--accent-light);
-  color: var(--accent);
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-}
-.mode-page--soon .mode-page__icon { background: var(--surface-3); color: var(--text-3); }
-.mode-page__icon .material-symbols-rounded { font-size: 16px; }
-.mode-page__body { flex: 1; min-width: 0; }
-.mode-page__name-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-.mode-page__name {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--text);
-}
-.mode-page__status {
-  font-size: 9px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-  padding: 2px 6px;
-  border-radius: 99px;
-  background: var(--surface-3);
-  color: var(--text-3);
-  white-space: nowrap;
-}
-.mode-page__status--ok { background: var(--accent-light); color: var(--accent-dark); }
-.mode-page__desc {
-  font-size: 11px;
-  color: var(--text-3);
-  margin-top: 4px;
-  line-height: 1.45;
-  display: block;
-}
 
 /* ═══ ACTION LIST (privacy / data) ════════════════════════════════ */
 .action-list { display: flex; flex-direction: column; gap: 4px; }

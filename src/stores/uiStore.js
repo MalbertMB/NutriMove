@@ -223,9 +223,9 @@ export const useUIStore = defineStore("ui", () => {
 			key: "meals",
 			label: "Àpats",
 			icon: "restaurant",
-			enabled: false,
+			enabled: true,
 			description:
-				"Properament: micronutrients, electròlits i timing nutricional al voltant de cada sessió.",
+				"Adherència calòrica, composició de macros per dia, distribució setmanal i timing nutricional al voltant de les sessions.",
 		},
 	]);
 
