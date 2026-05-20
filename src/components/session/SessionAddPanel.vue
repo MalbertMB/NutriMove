@@ -1,8 +1,20 @@
 <template>
   <Teleport to="body">
     <Transition name="panel-slide">
-      <div v-if="uiStore.addPanelOpen" class="add-panel-backdrop" @click.self="uiStore.closeAddPanel()">
-        <div class="add-panel" role="dialog" aria-modal="true" aria-labelledby="add-panel-title">
+      <div
+        v-if="uiStore.addPanelOpen"
+        class="add-panel-backdrop"
+        @click.self="uiStore.closeAddPanel()"
+        @keydown.esc.prevent="uiStore.closeAddPanel()"
+      >
+        <div
+          ref="panelRef"
+          class="add-panel"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="add-panel-title"
+          tabindex="-1"
+        >
           <!-- Header -->
           <div class="add-panel__header">
             <span class="material-symbols-rounded" aria-hidden="true">add_circle</span>
@@ -165,9 +177,15 @@
 import { ref, computed, watch } from 'vue'
 import { useUIStore } from '@/stores/uiStore'
 import { useWeekStore } from '@/stores/weekStore'
+import { useFocusTrap } from '@/composables/useFocusTrap'
+import { useScrollLock } from '@/composables/useScrollLock'
 
 const uiStore = useUIStore()
 const weekStore = useWeekStore()
+const panelRef = ref(null)
+const isOpen = computed(() => uiStore.addPanelOpen)
+useFocusTrap(isOpen, panelRef)
+useScrollLock(isOpen)
 
 const DURATIONS = [30, 60, 90, 120]
 const INTENSITIES = [

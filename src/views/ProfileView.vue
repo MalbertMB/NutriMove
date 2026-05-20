@@ -170,6 +170,139 @@
         </section>
       </div>
 
+      <!-- ═══ Accessibility (full-width) ═══════════════════════════ -->
+      <section id="profile-a11y" class="profile-card" tabindex="-1" aria-labelledby="a11y-title">
+        <header class="profile-card__head">
+          <h3 id="a11y-title" class="profile-card__title">
+            <span class="material-symbols-rounded icon-fill" aria-hidden="true">accessibility_new</span>
+            Accessibilitat
+          </h3>
+          <span class="card-subtitle">Personalitza com es mostra l'app</span>
+        </header>
+
+        <p class="profile-card__lead">
+          Ajusta el moviment, el contrast, la mida del text i la tipografia
+          per fer NutriMove més còmoda d'utilitzar. Les preferències es desen
+          al teu navegador.
+        </p>
+
+        <!-- Reduced motion: tri-state -->
+        <div class="a11y-row a11y-row--segmented">
+          <div class="toggle-row__body">
+            <span class="toggle-row__label">
+              <span class="material-symbols-rounded toggle-row__icon" aria-hidden="true">animation</span>
+              Moviment reduït
+            </span>
+            <span class="toggle-row__desc">
+              Desactiva animacions i transicions per reduir el moviment a la pantalla.
+            </span>
+          </div>
+          <div class="seg-control" role="radiogroup" aria-label="Moviment reduït">
+            <button
+              v-for="opt in motionOptions"
+              :key="opt.value"
+              type="button"
+              class="seg-control__opt"
+              :class="{ 'seg-control__opt--active': a11yStore.reducedMotion === opt.value }"
+              role="radio"
+              :aria-checked="a11yStore.reducedMotion === opt.value"
+              @click="a11yStore.setReducedMotion(opt.value)"
+            >{{ opt.label }}</button>
+          </div>
+        </div>
+
+        <div class="toggle-list">
+          <div class="toggle-row">
+            <div class="toggle-row__body">
+              <span class="toggle-row__label">
+                <span class="material-symbols-rounded toggle-row__icon" aria-hidden="true">contrast</span>
+                Alt contrast
+              </span>
+              <span class="toggle-row__desc">Augmenta el contrast de text, vores i botons.</span>
+            </div>
+            <button
+              type="button"
+              class="toggle-btn"
+              :class="{ 'toggle-btn--on': a11yStore.highContrast }"
+              :aria-pressed="a11yStore.highContrast"
+              :aria-label="`${a11yStore.highContrast ? 'Desactivar' : 'Activar'} alt contrast`"
+              @click="a11yStore.toggleHighContrast()"
+            >
+              <span class="toggle-btn__dot" aria-hidden="true"></span>
+            </button>
+          </div>
+
+          <div class="toggle-row">
+            <div class="toggle-row__body">
+              <span class="toggle-row__label">
+                <span class="material-symbols-rounded toggle-row__icon" aria-hidden="true">format_size</span>
+                Text gran
+              </span>
+              <span class="toggle-row__desc">Augmenta la mida base del text a tota l'app.</span>
+            </div>
+            <button
+              type="button"
+              class="toggle-btn"
+              :class="{ 'toggle-btn--on': a11yStore.largeText }"
+              :aria-pressed="a11yStore.largeText"
+              :aria-label="`${a11yStore.largeText ? 'Desactivar' : 'Activar'} text gran`"
+              @click="a11yStore.toggleLargeText()"
+            >
+              <span class="toggle-btn__dot" aria-hidden="true"></span>
+            </button>
+          </div>
+
+          <div class="toggle-row">
+            <div class="toggle-row__body">
+              <span class="toggle-row__label">
+                <span class="material-symbols-rounded toggle-row__icon" aria-hidden="true">font_download</span>
+                Tipografia per a dislèxia
+              </span>
+              <span class="toggle-row__desc">
+                Canvia a una tipografia més fàcil de llegir amb espaiat ampliat.
+              </span>
+            </div>
+            <button
+              type="button"
+              class="toggle-btn"
+              :class="{ 'toggle-btn--on': a11yStore.dyslexicFont }"
+              :aria-pressed="a11yStore.dyslexicFont"
+              :aria-label="`${a11yStore.dyslexicFont ? 'Desactivar' : 'Activar'} tipografia per a dislèxia`"
+              @click="a11yStore.toggleDyslexicFont()"
+            >
+              <span class="toggle-btn__dot" aria-hidden="true"></span>
+            </button>
+          </div>
+
+          <div class="toggle-row">
+            <div class="toggle-row__body">
+              <span class="toggle-row__label">
+                <span class="material-symbols-rounded toggle-row__icon" aria-hidden="true">link</span>
+                Subratlla els enllaços
+              </span>
+              <span class="toggle-row__desc">Mostra els enllaços subratllats per distingir-los millor del text.</span>
+            </div>
+            <button
+              type="button"
+              class="toggle-btn"
+              :class="{ 'toggle-btn--on': a11yStore.underlineLinks }"
+              :aria-pressed="a11yStore.underlineLinks"
+              :aria-label="`${a11yStore.underlineLinks ? 'Desactivar' : 'Activar'} subratllat dels enllaços`"
+              @click="a11yStore.toggleUnderlineLinks()"
+            >
+              <span class="toggle-btn__dot" aria-hidden="true"></span>
+            </button>
+          </div>
+        </div>
+
+        <div class="a11y-reset">
+          <button type="button" class="btn btn--ghost btn--sm" @click="a11yStore.resetA11y()">
+            <span class="material-symbols-rounded" aria-hidden="true">restart_alt</span>
+            Restablir per defecte
+          </button>
+        </div>
+      </section>
+
       <!-- ═══ Display mode (full-width) ═══════════════════════════════ -->
       <section id="profile-mode" class="profile-card profile-card--accent" tabindex="-1">
         <header class="profile-card__head">
@@ -280,11 +413,19 @@ import { reactive, ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import AppTopBar from '@/components/layout/AppTopBar.vue'
 import { useUIStore } from '@/stores/uiStore'
+import { useA11yStore } from '@/stores/a11yStore'
 import { useAuthStore, SPORT_OPTIONS, GOAL_OPTIONS } from '@/stores/authStore'
 
 const uiStore = useUIStore()
+const a11yStore = useA11yStore()
 const authStore = useAuthStore()
 const router = useRouter()
+
+const motionOptions = [
+  { value: 'auto', label: 'Auto' },
+  { value: 'on',   label: 'Reduït' },
+  { value: 'off',  label: 'Complet' },
+]
 
 const isDemoUser = computed(() => authStore.user?.email === 'pau@nutrimove.app')
 
@@ -892,6 +1033,54 @@ function onLogout() {
 .action-row:hover .action-row__chev { transform: translateX(2px); color: var(--text-2); }
 .action-row--danger:hover { border-color: var(--danger-soft-border); background: var(--danger-soft-bg); }
 .action-row--danger:hover .action-row__title { color: var(--danger-soft-text); }
+
+/* ═══ Accessibility section ═══════════════════════════════════════ */
+.a11y-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.a11y-row--segmented .toggle-row__body { flex: 1; min-width: 0; }
+
+.seg-control {
+  display: inline-flex;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 3px;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.seg-control__opt {
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-2);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all var(--dur-fast);
+  font-family: var(--font-body);
+}
+.seg-control__opt:hover { color: var(--text); }
+.seg-control__opt--active {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-sm);
+}
+.seg-control__opt:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.a11y-reset {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
 
 /* ═══ Keyframes ═══════════════════════════════════════════════════ */
 @keyframes fadeInUp {

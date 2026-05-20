@@ -15,21 +15,21 @@
           :aria-label="isCurrentWeek ? 'Ja ets a la setmana actual' : 'Tornar a la setmana actual'"
           :title="isCurrentWeek ? 'Ja ets a la setmana actual' : 'Tornar a la setmana actual'"
         >
-          <span class="material-symbols-rounded">today</span>
+          <span class="material-symbols-rounded" aria-hidden="true">today</span>
           Avui
         </button>
-        <button class="week-nav__btn" @click="$emit('prevWeek')" aria-label="Setmana anterior">
-          <span class="material-symbols-rounded">chevron_left</span>
+        <button class="week-nav__btn" type="button" @click="$emit('prevWeek')" aria-label="Setmana anterior">
+          <span class="material-symbols-rounded" aria-hidden="true">chevron_left</span>
         </button>
-        <span class="week-nav__label">{{ weekLabel }}</span>
-        <button class="week-nav__btn" @click="$emit('nextWeek')" aria-label="Setmana següent">
-          <span class="material-symbols-rounded">chevron_right</span>
+        <span class="week-nav__label" aria-live="polite" aria-atomic="true">{{ weekLabel }}</span>
+        <button class="week-nav__btn" type="button" @click="$emit('nextWeek')" aria-label="Setmana següent">
+          <span class="material-symbols-rounded" aria-hidden="true">chevron_right</span>
         </button>
       </div>
 
       <!-- Save week button -->
-      <button v-if="showSave" class="btn btn--primary btn--sm" @click="$emit('save')">
-        <span class="material-symbols-rounded">save</span>
+      <button v-if="showSave" class="btn btn--primary btn--sm" type="button" @click="$emit('save')">
+        <span class="material-symbols-rounded" aria-hidden="true">save</span>
         Desa la setmana
       </button>
 

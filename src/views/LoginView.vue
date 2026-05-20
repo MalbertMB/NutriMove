@@ -9,30 +9,44 @@
         <p>Accedeix a NutriMove per gestionar entrenament i nutrició.</p>
       </div>
 
-      <form class="login-form" @submit.prevent="handleSubmit">
-        <label class="field">
-          <span>Correu</span>
+      <form class="login-form" novalidate @submit.prevent="handleSubmit">
+        <div class="field">
+          <label for="login-email">Correu</label>
           <input
+            id="login-email"
             v-model="email"
             type="email"
             autocomplete="email"
             placeholder="pau@nutrimove.app"
             required
+            aria-required="true"
+            :aria-invalid="error ? 'true' : 'false'"
+            :aria-describedby="error ? 'login-error' : undefined"
           />
-        </label>
+        </div>
 
-        <label class="field">
-          <span>Contrasenya</span>
+        <div class="field">
+          <label for="login-password">Contrasenya</label>
           <input
+            id="login-password"
             v-model="password"
             type="password"
             autocomplete="current-password"
             placeholder="123456"
             required
+            aria-required="true"
+            :aria-invalid="error ? 'true' : 'false'"
+            :aria-describedby="error ? 'login-error' : undefined"
           />
-        </label>
+        </div>
 
-        <p v-if="error" class="error-msg">{{ error }}</p>
+        <p
+          v-if="error"
+          id="login-error"
+          class="error-msg"
+          role="alert"
+          aria-live="assertive"
+        >{{ error }}</p>
 
         <button class="btn-login" type="submit">Entrar</button>
       </form>
@@ -140,7 +154,8 @@ p {
   gap: 6px;
 }
 
-.field span {
+.field span,
+.field label {
   font-size: 12px;
   font-weight: 600;
   color: var(--text-2);

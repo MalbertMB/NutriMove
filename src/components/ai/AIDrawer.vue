@@ -152,12 +152,18 @@
 import { computed, nextTick, ref, watch } from 'vue'
 import { useUIStore } from '@/stores/uiStore'
 import { useWeekStore } from '@/stores/weekStore'
+import { useFocusTrap } from '@/composables/useFocusTrap'
+import { useScrollLock } from '@/composables/useScrollLock'
 
 const uiStore = useUIStore()
 const weekStore = useWeekStore()
 const dialogRef = ref(null)
 const closeBtnRef = ref(null)
 let lastFocusedElement = null
+
+const isOpen = computed(() => uiStore.aiDrawerOpen)
+useFocusTrap(isOpen, dialogRef, { initialFocus: () => closeBtnRef.value })
+useScrollLock(isOpen)
 
 const ctx = computed(() => uiStore.aiDrawerContext || {})
 const selectedIds = ref(new Set())

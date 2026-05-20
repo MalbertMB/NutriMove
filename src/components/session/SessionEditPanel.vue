@@ -198,12 +198,18 @@
 import { ref, computed, watch, nextTick } from 'vue'
 import { useWeekStore } from '@/stores/weekStore'
 import { useUIStore } from '@/stores/uiStore'
+import { useFocusTrap } from '@/composables/useFocusTrap'
+import { useScrollLock } from '@/composables/useScrollLock'
 
 const weekStore = useWeekStore()
 const uiStore = useUIStore()
 const panelRef = ref(null)
 const closeBtnRef = ref(null)
 let lastFocusedElement = null
+
+const isOpen = computed(() => uiStore.editPanelOpen)
+useFocusTrap(isOpen, panelRef, { initialFocus: () => closeBtnRef.value })
+useScrollLock(isOpen)
 
 const TIME_START = 6
 const TIME_END = 22

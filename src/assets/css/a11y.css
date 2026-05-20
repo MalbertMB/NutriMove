@@ -1,0 +1,233 @@
+/* ============================================================
+   Accessibility layer
+   Toggled via data-* attributes on <html> by a11yStore.
+   Also honours system-level prefers-reduced-motion.
+   ============================================================ */
+
+/* ─────── Screen-reader-only helper ─────── */
+.sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+/* ─────── Strong focus ring (always visible for keyboard users) ─────── */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ─────── Reduced motion ─────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+html[data-reduced-motion] *,
+html[data-reduced-motion] *::before,
+html[data-reduced-motion] *::after {
+  animation-duration: 0.001ms !important;
+  animation-delay: 0ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  transition-delay: 0ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* ─────── Large text ─────── */
+html[data-large-text] {
+  font-size: 18px;
+}
+html[data-large-text] body {
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+/* ─────── Dyslexia-friendly font ───────
+   Uses system fallbacks (Atkinson, OpenDyslexic if installed,
+   otherwise a clean sans-serif with wider spacing). */
+html[data-dyslexic-font] {
+  --font-display: 'Atkinson Hyperlegible', 'OpenDyslexic',
+    'Comic Sans MS', 'Verdana', system-ui, sans-serif;
+  --font-body: 'Atkinson Hyperlegible', 'OpenDyslexic',
+    'Verdana', 'Tahoma', system-ui, sans-serif;
+}
+html[data-dyslexic-font] body,
+html[data-dyslexic-font] h1,
+html[data-dyslexic-font] h2,
+html[data-dyslexic-font] h3,
+html[data-dyslexic-font] h4,
+html[data-dyslexic-font] h5,
+html[data-dyslexic-font] p,
+html[data-dyslexic-font] li,
+html[data-dyslexic-font] span,
+html[data-dyslexic-font] button,
+html[data-dyslexic-font] input,
+html[data-dyslexic-font] textarea,
+html[data-dyslexic-font] select,
+html[data-dyslexic-font] label {
+  letter-spacing: 0.03em;
+  word-spacing: 0.06em;
+  line-height: 1.65;
+}
+
+/* ─────── Underline links ─────── */
+html[data-underline-links] a:not(.btn):not(.nav-item):not([role="button"]) {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* ─────── High contrast ───────
+   Increases borders, darkens text, removes low-contrast tints. */
+html[data-high-contrast] {
+  --text:    #000000;
+  --text-2:  #1A1A1A;
+  --text-3:  #333333;
+  --surface:   #FFFFFF;
+  --surface-2: #FFFFFF;
+  --surface-3: #F0F0F0;
+  --border:   #000000;
+  --border-2: #000000;
+  --accent:      #006B4F;
+  --accent-dark: #004D38;
+  --accent-light: #B5E6D6;
+  --warning: #B45309;
+  --warning-light: #FDE68A;
+  --danger:  #991B1B;
+  --danger-light: #FECACA;
+  --purple:  #4338CA;
+  --purple-light: #C7D2FE;
+  --navy:    #000000;
+  --navy-2:  #1A1A1A;
+  --navy-3:  #333333;
+}
+
+html[data-high-contrast] body {
+  background: #FFFFFF;
+  color: #000000;
+}
+
+html[data-high-contrast] *:focus-visible {
+  outline: 3px solid #000000;
+  outline-offset: 3px;
+}
+
+html[data-high-contrast] .btn,
+html[data-high-contrast] button,
+html[data-high-contrast] input,
+html[data-high-contrast] select,
+html[data-high-contrast] textarea {
+  border: 2px solid #000 !important;
+}
+
+html[data-high-contrast] .btn--primary,
+html[data-high-contrast] .btn-login,
+html[data-high-contrast] .btn-primary {
+  background: #000000 !important;
+  color: #FFFFFF !important;
+  border: 2px solid #000 !important;
+}
+html[data-high-contrast] .btn--primary:hover,
+html[data-high-contrast] .btn-login:hover,
+html[data-high-contrast] .btn-primary:hover {
+  background: #1A1A1A !important;
+  color: #FFFFFF !important;
+}
+
+html[data-high-contrast] .btn--ghost,
+html[data-high-contrast] .btn--secondary,
+html[data-high-contrast] .btn--outline {
+  background: #FFFFFF !important;
+  color: #000000 !important;
+  border: 2px solid #000 !important;
+}
+
+html[data-high-contrast] .text-3,
+html[data-high-contrast] [class*="--meta"],
+html[data-high-contrast] small {
+  color: #333333 !important;
+}
+
+/* Segmented control (e.g. "Moviment reduït") needs an inverted active
+   state so the selected option is clearly distinguishable from the
+   neighbours under high contrast. */
+html[data-high-contrast] .seg-control {
+  background: #FFFFFF !important;
+  border: 2px solid #000 !important;
+}
+html[data-high-contrast] .seg-control__opt {
+  background: #FFFFFF !important;
+  color: #000000 !important;
+  border: 2px solid transparent !important;
+  font-weight: 700 !important;
+}
+html[data-high-contrast] .seg-control__opt--active {
+  background: #000000 !important;
+  color: #FFFFFF !important;
+  border-color: #000 !important;
+  box-shadow: none !important;
+}
+html[data-high-contrast] .seg-control__opt:focus-visible {
+  outline: 3px solid #000 !important;
+  outline-offset: 2px !important;
+}
+
+/* Same problem on the Mode toggle (Simple / Avançat): under high
+   contrast the sliding indicator and the option text both go to plain
+   black-on-white. Force the active option to invert. */
+html[data-high-contrast] .mode-toggle {
+  background: #FFFFFF !important;
+  border: 2px solid #000 !important;
+}
+html[data-high-contrast] .mode-toggle__indicator {
+  background: #000000 !important;
+  box-shadow: none !important;
+}
+html[data-high-contrast] .mode-toggle__option {
+  color: #000000 !important;
+}
+html[data-high-contrast] .mode-toggle__option--active,
+html[data-high-contrast] .mode-toggle__option--active .mode-toggle__sub,
+html[data-high-contrast] .mode-toggle__option--active .mode-toggle__title {
+  color: #FFFFFF !important;
+}
+html[data-high-contrast] .mode-toggle__option--active .mode-toggle__icon {
+  background: #FFFFFF !important;
+  color: #000000 !important;
+}
+
+/* Pill toggles ("toggle-btn") — when on, fill solid black so the
+   "on" state isn't a low-contrast accent green. */
+html[data-high-contrast] .toggle-btn {
+  background: #FFFFFF !important;
+  border: 2px solid #000 !important;
+}
+html[data-high-contrast] .toggle-btn--on {
+  background: #000000 !important;
+  border-color: #000 !important;
+}
+html[data-high-contrast] .toggle-btn__dot {
+  background: #FFFFFF !important;
+  border: 1px solid #000 !important;
+}
+html[data-high-contrast] .toggle-btn--on .toggle-btn__dot {
+  background: #FFFFFF !important;
+}

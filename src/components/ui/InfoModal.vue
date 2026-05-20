@@ -2,23 +2,27 @@
   <transition name="info-fade">
     <div
       v-if="topic && data"
+      ref="modalRef"
       class="info-modal"
       role="dialog"
       aria-modal="true"
+      :aria-labelledby="`info-modal-title-${topic}`"
+      :aria-describedby="`info-modal-body-${topic}`"
+      tabindex="-1"
       @click.self="$emit('close')"
       @keydown.esc="$emit('close')"
     >
       <div class="info-modal__card">
-        <button class="info-modal__close" @click="$emit('close')" aria-label="Tancar">
-          <span class="material-symbols-rounded">close</span>
+        <button ref="closeBtnRef" class="info-modal__close" @click="$emit('close')" aria-label="Tancar la finestra d'informació">
+          <span class="material-symbols-rounded" aria-hidden="true">close</span>
         </button>
         <div class="info-modal__head">
-          <span class="info-modal__icon">
+          <span class="info-modal__icon" aria-hidden="true">
             <span class="material-symbols-rounded icon-fill">{{ data.icon }}</span>
           </span>
-          <h3 class="info-modal__title">{{ data.title }}</h3>
+          <h3 :id="`info-modal-title-${topic}`" class="info-modal__title">{{ data.title }}</h3>
         </div>
-        <p class="info-modal__body">{{ data.body }}</p>
+        <p :id="`info-modal-body-${topic}`" class="info-modal__body">{{ data.body }}</p>
 
         <!-- Formula + variable legend -->
         <div v-if="data.formula" class="info-modal__section">
@@ -112,7 +116,9 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useFocusTrap } from '@/composables/useFocusTrap'
+import { useScrollLock } from '@/composables/useScrollLock'
 
 const props = defineProps({
   topic: { type: String, default: null },
@@ -120,7 +126,13 @@ const props = defineProps({
 })
 const emit = defineEmits(['close'])
 
+const modalRef = ref(null)
+const closeBtnRef = ref(null)
 const data = computed(() => (props.topic ? props.topics[props.topic] ?? null : null))
+const isOpen = computed(() => Boolean(props.topic && data.value))
+
+useFocusTrap(isOpen, modalRef, { initialFocus: () => closeBtnRef.value })
+useScrollLock(isOpen)
 
 function handleEsc(e) {
   if (e.key === 'Escape' && props.topic) emit('close')

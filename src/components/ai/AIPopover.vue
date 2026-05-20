@@ -69,12 +69,16 @@
 import { computed, nextTick, ref, watch } from 'vue'
 import { useUIStore } from '@/stores/uiStore'
 import { useWeekStore } from '@/stores/weekStore'
+import { useFocusTrap } from '@/composables/useFocusTrap'
 
 const uiStore = useUIStore()
 const weekStore = useWeekStore()
 const dialogRef = ref(null)
 const closeBtnRef = ref(null)
 let lastFocusedElement = null
+
+const isOpen = computed(() => uiStore.aiPopoverOpen)
+useFocusTrap(isOpen, dialogRef, { initialFocus: () => closeBtnRef.value })
 
 const ctx = computed(() => uiStore.aiPopoverContext || {})
 

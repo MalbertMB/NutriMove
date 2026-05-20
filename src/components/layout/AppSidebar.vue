@@ -11,17 +11,22 @@
     </div>
 
     <!-- Nav links -->
-    <nav class="sidebar__nav" role="navigation" aria-label="Navegació principal">
+    <nav id="app-sidebar-nav" class="sidebar__nav" aria-label="Navegació principal">
       <router-link
         v-for="item in navItems"
         :key="item.to"
         :to="item.to"
         class="nav-item"
-        :aria-label="item.label"
+        :aria-label="collapsed ? item.label : undefined"
+        :title="collapsed ? item.label : undefined"
         v-slot="{ isActive }"
       >
-        <div class="nav-item__inner" :class="{ active: isActive }">
-          <span class="material-symbols-rounded" :class="{ 'icon-fill': isActive }">{{ item.icon }}</span>
+        <div
+          class="nav-item__inner"
+          :class="{ active: isActive }"
+          :aria-current="isActive ? 'page' : undefined"
+        >
+          <span class="material-symbols-rounded" :class="{ 'icon-fill': isActive }" aria-hidden="true">{{ item.icon }}</span>
           <transition name="fade">
             <span v-if="!collapsed" class="nav-item__label">{{ item.label }}</span>
           </transition>
@@ -42,17 +47,20 @@
     </div>
 
     <button v-if="!collapsed" class="sidebar__logout" @click="handleLogout">
-      <span class="material-symbols-rounded">logout</span>
+      <span class="material-symbols-rounded" aria-hidden="true">logout</span>
       Tanca sessió
     </button>
 
     <!-- Collapse toggle -->
     <button
       class="sidebar__toggle"
+      type="button"
+      :aria-expanded="!collapsed"
+      aria-controls="app-sidebar-nav"
+      :aria-label="collapsed ? 'Expandir menú lateral' : 'Col·lapsar menú lateral'"
       @click="collapsed = !collapsed"
-      :aria-label="collapsed ? 'Expandir menú' : 'Col·lapsar menú'"
     >
-      <span class="material-symbols-rounded">{{ collapsed ? 'chevron_right' : 'chevron_left' }}</span>
+      <span class="material-symbols-rounded" aria-hidden="true">{{ collapsed ? 'chevron_right' : 'chevron_left' }}</span>
     </button>
   </aside>
 </template>

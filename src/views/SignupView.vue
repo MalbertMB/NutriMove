@@ -26,59 +26,86 @@
         </div>
       </div>
 
-      <form v-if="step === 1" class="signup-form" @submit.prevent="nextStep">
-        <label class="field">
-          <span>Nom complet</span>
-          <input v-model="form.name" type="text" placeholder="Pau Martínez" required />
-        </label>
-        <label class="field">
-          <span>Correu electrònic</span>
-          <input v-model="form.email" type="email" placeholder="tu@exemple.com" required />
-        </label>
-        <label class="field">
-          <span>Contrasenya</span>
-          <input v-model="form.password" type="password" placeholder="Mínim 6 caràcters" required />
-        </label>
-        <p v-if="error" class="error-msg">{{ error }}</p>
+      <form v-if="step === 1" class="signup-form" novalidate @submit.prevent="nextStep">
+        <div class="field">
+          <label for="signup-name">Nom complet</label>
+          <input
+            id="signup-name"
+            v-model="form.name"
+            type="text"
+            placeholder="Pau Martínez"
+            required
+            aria-required="true"
+            autocomplete="name"
+          />
+        </div>
+        <div class="field">
+          <label for="signup-email">Correu electrònic</label>
+          <input
+            id="signup-email"
+            v-model="form.email"
+            type="email"
+            placeholder="tu@exemple.com"
+            required
+            aria-required="true"
+            autocomplete="email"
+          />
+        </div>
+        <div class="field">
+          <label for="signup-password">Contrasenya</label>
+          <input
+            id="signup-password"
+            v-model="form.password"
+            type="password"
+            placeholder="Mínim 6 caràcters"
+            required
+            aria-required="true"
+            minlength="6"
+            autocomplete="new-password"
+            :aria-describedby="error ? 'signup-error' : undefined"
+            :aria-invalid="error ? 'true' : 'false'"
+          />
+        </div>
+        <p v-if="error" id="signup-error" class="error-msg" role="alert" aria-live="assertive">{{ error }}</p>
         <button class="btn-primary" type="submit">Continua</button>
       </form>
 
-      <form v-else-if="step === 2" class="signup-form" @submit.prevent="nextStep2">
+      <form v-else-if="step === 2" class="signup-form" novalidate @submit.prevent="nextStep2">
         <div class="field-row">
-          <label class="field">
-            <span>Edat</span>
-            <input v-model.number="form.age" type="number" min="10" max="99" placeholder="25" required />
-          </label>
-          <label class="field">
-            <span>Gènere</span>
-            <select v-model="form.gender">
+          <div class="field">
+            <label for="signup-age">Edat</label>
+            <input id="signup-age" v-model.number="form.age" type="number" min="10" max="99" placeholder="25" required aria-required="true" />
+          </div>
+          <div class="field">
+            <label for="signup-gender">Gènere</label>
+            <select id="signup-gender" v-model="form.gender">
               <option value="M">Home</option>
               <option value="F">Dona</option>
             </select>
-          </label>
+          </div>
         </div>
         <div class="field-row">
-          <label class="field">
-            <span>Pes (kg)</span>
-            <input v-model.number="form.weight" type="number" min="30" max="250" step="0.5" placeholder="70" required />
-          </label>
-          <label class="field">
-            <span>Alçada (cm)</span>
-            <input v-model.number="form.height" type="number" min="100" max="250" placeholder="175" required />
-          </label>
+          <div class="field">
+            <label for="signup-weight">Pes (kg)</label>
+            <input id="signup-weight" v-model.number="form.weight" type="number" min="30" max="250" step="0.5" placeholder="70" required aria-required="true" />
+          </div>
+          <div class="field">
+            <label for="signup-height">Alçada (cm)</label>
+            <input id="signup-height" v-model.number="form.height" type="number" min="100" max="250" placeholder="175" required aria-required="true" />
+          </div>
         </div>
 
-        <label class="field">
-          <span>Nivell d'activitat</span>
-          <select v-model="form.activityLevel">
+        <div class="field">
+          <label for="signup-activity">Nivell d'activitat</label>
+          <select id="signup-activity" v-model="form.activityLevel">
             <option v-for="opt in ACTIVITY_OPTIONS" :key="opt.key" :value="opt.key">
               {{ opt.label }} – {{ opt.desc }}
             </option>
           </select>
-        </label>
+        </div>
 
-        <div class="field">
-          <span class="field-label">Esports preferits</span>
+        <div class="field" role="group" aria-labelledby="signup-sports-label">
+          <span id="signup-sports-label" class="field-label">Esports preferits</span>
           <div class="sports-grid">
             <button
               v-for="sport in SPORT_OPTIONS"
@@ -86,15 +113,16 @@
               type="button"
               class="sport-chip"
               :class="{ 'sport-chip--active': form.sports.includes(sport.key) }"
+              :aria-pressed="form.sports.includes(sport.key)"
               @click="toggleSport(sport.key)"
             >
-              <span class="material-symbols-rounded">{{ sport.icon }}</span>
+              <span class="material-symbols-rounded" aria-hidden="true">{{ sport.icon }}</span>
               {{ sport.label }}
             </button>
           </div>
         </div>
 
-        <p v-if="error" class="error-msg">{{ error }}</p>
+        <p v-if="error" class="error-msg" role="alert" aria-live="assertive">{{ error }}</p>
 
         <div class="btn-row">
           <button type="button" class="btn-back" @click="step = 1">Enrere</button>
@@ -102,10 +130,10 @@
         </div>
       </form>
 
-      <form v-else-if="step === 3" class="signup-form" @submit.prevent="handleSubmit">
-        <div class="field">
-          <span class="field-label">Objectius principals</span>
-          <p class="field-hint">Selecciona els que s'adapten al teu cas (pots triar-ne més d'un).</p>
+      <form v-else-if="step === 3" class="signup-form" novalidate @submit.prevent="handleSubmit">
+        <div class="field" role="group" aria-labelledby="signup-goals-label" aria-describedby="signup-goals-hint">
+          <span id="signup-goals-label" class="field-label">Objectius principals</span>
+          <p id="signup-goals-hint" class="field-hint">Selecciona els que s'adapten al teu cas (pots triar-ne més d'un).</p>
           <div class="goals-grid">
             <button
               v-for="goal in GOAL_OPTIONS"
@@ -113,17 +141,19 @@
               type="button"
               class="goal-chip"
               :class="{ 'goal-chip--active': form.goals.includes(goal.key) }"
+              :aria-pressed="form.goals.includes(goal.key)"
               @click="toggleGoal(goal.key)"
             >
-              <span class="material-symbols-rounded">{{ goal.icon }}</span>
+              <span class="material-symbols-rounded" aria-hidden="true">{{ goal.icon }}</span>
               {{ goal.label }}
             </button>
           </div>
         </div>
 
         <div class="field">
-          <span class="field-label">Objectiu personal <span class="field-optional">(opcional)</span></span>
+          <label for="signup-personal-goal" class="field-label">Objectiu personal <span class="field-optional">(opcional)</span></label>
           <textarea
+            id="signup-personal-goal"
             v-model="form.personalGoal"
             class="goal-textarea"
             placeholder="Vull..."
@@ -131,7 +161,7 @@
           ></textarea>
         </div>
 
-        <p v-if="error" class="error-msg">{{ error }}</p>
+        <p v-if="error" class="error-msg" role="alert" aria-live="assertive">{{ error }}</p>
 
         <div class="btn-row">
           <button type="button" class="btn-back" @click="step = 2">Enrere</button>
@@ -326,7 +356,9 @@ p { margin: 6px 0 0; color: var(--text-3); font-size: 13px; }
   gap: 6px;
 }
 
-.field > span, .field-label {
+.field > span,
+.field > label,
+.field-label {
   font-size: 12px;
   font-weight: 600;
   color: var(--text-2);

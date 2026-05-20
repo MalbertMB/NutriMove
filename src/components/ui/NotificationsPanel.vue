@@ -49,8 +49,12 @@
             :key="n.id"
             class="notif-item"
             :class="{ 'notif-item--unread': !n.read }"
+            tabindex="0"
+            role="button"
+            :aria-label="`${n.title}. ${n.body}${!n.read ? '. No llegida' : ''}`"
             @click="uiStore.markRead(n.id)"
-            role="listitem"
+            @keydown.enter.prevent="uiStore.markRead(n.id)"
+            @keydown.space.prevent="uiStore.markRead(n.id)"
           >
             <div class="notif-item__icon" :class="`notif-icon--${n.type}`">
               <span class="material-symbols-rounded icon-fill">{{ n.icon }}</span>
@@ -69,11 +73,15 @@
 </template>
 
 <script setup>
-import { ref, watch, nextTick } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { useUIStore } from '@/stores/uiStore'
+import { useFocusTrap } from '@/composables/useFocusTrap'
 
 const uiStore = useUIStore()
 const panelRef = ref(null)
+const isOpen = computed(() => uiStore.notifPanelOpen)
+
+useFocusTrap(isOpen, panelRef, { initialFocus: () => panelRef.value })
 
 watch(() => uiStore.notifPanelOpen, async (open) => {
   if (open) {

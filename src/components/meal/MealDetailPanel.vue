@@ -2,14 +2,17 @@
   <transition name="slide-right">
     <div
       v-if="uiStore.mealPanelOpen && uiStore.mealPanelDayIndex !== null"
+      ref="panelRef"
       class="meal-panel"
       role="dialog"
       aria-modal="true"
+      aria-label="Detall d'àpats"
+      tabindex="-1"
       @keydown.esc.prevent="uiStore.closeMealPanel()"
     >
       <div class="meal-panel__close-row">
-        <button class="close-btn" @click="uiStore.closeMealPanel()" aria-label="Tancar">
-          <span class="material-symbols-rounded">close</span>
+        <button class="close-btn" @click="uiStore.closeMealPanel()" aria-label="Tancar el panell d'àpats">
+          <span class="material-symbols-rounded" aria-hidden="true">close</span>
         </button>
       </div>
       <div class="meal-panel__body">
@@ -24,10 +27,18 @@
 </template>
 
 <script setup>
+import { ref, computed } from 'vue'
 import MealDetailContent from './MealDetailContent.vue'
 import { useUIStore } from '@/stores/uiStore'
+import { useFocusTrap } from '@/composables/useFocusTrap'
+import { useScrollLock } from '@/composables/useScrollLock'
 
 const uiStore = useUIStore()
+const panelRef = ref(null)
+const isOpen = computed(() => uiStore.mealPanelOpen)
+
+useFocusTrap(isOpen, panelRef)
+useScrollLock(isOpen)
 </script>
 
 <style scoped>

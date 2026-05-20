@@ -11,6 +11,12 @@
     </div>
     <BaseToast />
     <NotificationsPanel />
+    <div
+      id="a11y-live"
+      class="sr-only"
+      aria-live="polite"
+      aria-atomic="true"
+    ></div>
   </div>
 </template>
 
@@ -18,6 +24,10 @@
 import AppSidebar from '@/components/layout/AppSidebar.vue'
 import BaseToast from '@/components/ui/BaseToast.vue'
 import NotificationsPanel from '@/components/ui/NotificationsPanel.vue'
+import { useA11yStore } from '@/stores/a11yStore'
+
+// Instantiate so prefs are applied to <html> on mount and listeners are set up.
+useA11yStore()
 </script>
 
 <style>
