@@ -53,11 +53,11 @@ html[data-reduced-motion] *::after {
 }
 
 /* ─────── Large text ─────── */
-html[data-large-text] {
-  font-size: 18px;
-}
+/* Most components use hardcoded px font-sizes, so bumping root font-size
+   alone has almost no visible effect. Use zoom on body to scale everything
+   proportionally. */
 html[data-large-text] body {
-  font-size: 16px;
+  zoom: 1.15;
   line-height: 1.6;
 }
 

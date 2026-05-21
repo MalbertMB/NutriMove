@@ -537,42 +537,6 @@
         </div>
       </section>
 
-      <!-- Macro adherence -->
-      <section class="chart-card chart-card--wide">
-        <header class="chart-card__head">
-          <div>
-            <h3 class="chart-card__title">
-              <span class="material-symbols-rounded icon-fill">analytics</span>
-              Adherència de macronutrients
-              <button class="info-btn" @click.stop="openInfo('macros')" data-tip="Clica per veure més info" aria-label="Informació sobre macronutrients">
-                <span class="material-symbols-rounded">info</span>
-              </button>
-            </h3>
-            <span class="chart-card__sub">% setmanes que assoleixen l'objectiu de cada macro</span>
-          </div>
-          <div class="chart-legend">
-            <span class="chart-legend__item"><span class="dot" style="background: #4F46E5"></span>HC</span>
-            <span class="chart-legend__item"><span class="dot" style="background: #059669"></span>Prot</span>
-            <span class="chart-legend__item"><span class="dot" style="background: #D97706"></span>Greix</span>
-          </div>
-        </header>
-        <div class="macro-grid">
-          <div v-for="(mw, i) in macroHistory" :key="'mw' + i" class="macro-week">
-            <div class="macro-week__bars">
-              <div class="macro-week__bar">
-                <div class="macro-week__fill macro-week__fill--carbs" :style="{ height: mw.carbs + '%' }" :title="`HC ${mw.carbs}%`"></div>
-              </div>
-              <div class="macro-week__bar">
-                <div class="macro-week__fill macro-week__fill--protein" :style="{ height: mw.protein + '%' }" :title="`Prot ${mw.protein}%`"></div>
-              </div>
-              <div class="macro-week__bar">
-                <div class="macro-week__fill macro-week__fill--fat" :style="{ height: mw.fat + '%' }" :title="`Greix ${mw.fat}%`"></div>
-              </div>
-            </div>
-            <span class="macro-week__label" :class="{ 'macro-week__label--current': i === macroHistory.length - 1 }">{{ mw.wk }}</span>
-          </div>
-        </div>
-      </section>
     </div>
 
     <InfoModal :topic="infoTopic" :topics="infoTopics" @close="closeInfo" />
@@ -999,16 +963,6 @@ const infoTopics = computed(() => {
         { from: 'Z5', to: 'VO₂max (90–100%)' },
       ],
     },
-    macros: {
-      icon: 'analytics', title: 'Adherència de macronutrients',
-      body: 'Percentatge de cada macronutrient (HC, proteïna, greixos) que s\'ha assolit respecte de l\'objectiu setmanal. Un valor proper al 100% indica que has cobert l\'objectiu nutricional.',
-      formula: { equation: '%_macro = (ingerit_setm ÷ objectiu_setm) × 100%' },
-      thresholds: [
-        { range: '≥ 90%', label: 'Compleix', tone: 'good' },
-        { range: '70 – 90%', label: 'Acceptable', tone: 'warn' },
-        { range: '< 70%', label: 'Per sota', tone: 'risk' },
-      ],
-    },
   }
 })
 
@@ -1025,16 +979,6 @@ const zoneHistory = computed(() => weeks.value.map((w) => {
   return { wk: w.wk, z1, z2, z3, z4, z5, total }
 }))
 
-// Macro adherence (carbs / protein / fat % of weekly target hit)
-const macroHistory = computed(() => weeks.value.map((w) => {
-  const base = w.adh
-  return {
-    wk: w.wk,
-    carbs: Math.min(100, Math.max(40, Math.round(base + 6))),
-    protein: Math.min(100, Math.max(40, Math.round(base - 2))),
-    fat: Math.min(100, Math.max(40, Math.round(base - 8))),
-  }
-}))
 </script>
 
 <style scoped>
@@ -1442,35 +1386,6 @@ const macroHistory = computed(() => weeks.value.map((w) => {
 .zone-bar__label { font-size: 10px; color: var(--text-3); font-weight: 600; }
 .zone-bar__label--current { color: var(--accent-dark); font-weight: 800; }
 .zone-bar__total { font-size: 9px; color: var(--text-3); }
-
-/* ═══ Macro adherence grid ════════════════════════════════════════ */
-.macro-grid { display: flex; align-items: flex-end; gap: 10px; padding-top: 8px; min-height: 180px; }
-.macro-week {
-  flex: 1;
-  display: flex; flex-direction: column; align-items: center; gap: 6px;
-}
-.macro-week__bars {
-  display: flex; align-items: flex-end; gap: 2px;
-  width: 100%; height: 150px;
-}
-.macro-week__bar {
-  flex: 1; height: 100%;
-  background: var(--surface-3);
-  border-radius: var(--radius-xs) var(--radius-xs) 0 0;
-  display: flex; align-items: flex-end;
-  overflow: hidden;
-}
-.macro-week__fill {
-  width: 100%;
-  border-radius: var(--radius-xs) var(--radius-xs) 0 0;
-  transition: height 0.6s var(--ease);
-  min-height: 2px;
-}
-.macro-week__fill--carbs   { background: linear-gradient(180deg, #6366F1, #4F46E5); }
-.macro-week__fill--protein { background: linear-gradient(180deg, #10B981, #059669); }
-.macro-week__fill--fat     { background: linear-gradient(180deg, #F59E0B, #D97706); }
-.macro-week__label { font-size: 10px; color: var(--text-3); font-weight: 600; }
-.macro-week__label--current { color: var(--accent-dark); font-weight: 800; }
 
 /* ═══ Empty state hint ════════════════════════════════════════════ */
 .empty-hint {
