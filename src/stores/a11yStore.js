@@ -118,13 +118,11 @@ export const useA11yStore = defineStore('a11y', () => {
     largeText,
     dyslexicFont,
     underlineLinks,
-    systemReducedMotion,
     setReducedMotion,
     toggleHighContrast,
     toggleLargeText,
     toggleDyslexicFont,
     toggleUnderlineLinks,
     resetA11y,
-    applyToDocument,
   }
 })
