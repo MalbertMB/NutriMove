@@ -137,41 +137,6 @@ export const useUIStore = defineStore("ui", () => {
 		addPanelContext.value = null;
 	}
 
-	// Notifications
-	const notifications = ref([
-		{
-			id: 1, type: 'warning', icon: 'warning',
-			title: 'Càrrega alta detectada',
-			body: 'Força — upper body (dimecres) té intensitat alta. Revisa la nutrició del dia.',
-			read: false, time: new Date(Date.now() - 1000 * 60 * 12),
-		},
-		{
-			id: 2, type: 'ai', icon: 'auto_awesome',
-			title: 'Nutrició ajustada per IA',
-			body: 'El sopar del dijous s\'ha reforçat amb +300 kcal per compensar la càrrega setmanal.',
-			read: true, time: new Date(Date.now() - 1000 * 60 * 60 * 2),
-		},
-	]);
-	let _notifId = 10;
-	const notifPanelOpen = ref(false);
-	const unreadCount = computed(() => notifications.value.filter(n => !n.read).length);
-
-	function addNotification({ type = 'info', icon = 'notifications', title, body }) {
-		notifications.value.unshift({ id: ++_notifId, type, icon, title, body, read: false, time: new Date() });
-	}
-
-	function markRead(id) {
-		const n = notifications.value.find(n => n.id === id);
-		if (n) n.read = true;
-	}
-
-	function markAllRead() {
-		notifications.value.forEach(n => { n.read = true; });
-	}
-
-	function toggleNotifPanel() { notifPanelOpen.value = !notifPanelOpen.value; }
-	function closeNotifPanel() { notifPanelOpen.value = false; }
-
 	// ── User mode ────────────────────────────────────────────────
 	// Global "Simple" vs "Advanced" mode. Pages opt in to a richer view by
 	// reading `advancedMetrics` (kept as a computed alias for callers that
@@ -224,14 +189,6 @@ export const useUIStore = defineStore("ui", () => {
 		scheduleClosePreviewSession,
 		cancelClosePreviewSession,
 		closePreviewSession,
-		notifications,
-		notifPanelOpen,
-		unreadCount,
-		addNotification,
-		markRead,
-		markAllRead,
-		toggleNotifPanel,
-		closeNotifPanel,
 		addPanelOpen,
 		addPanelContext,
 		openAddPanel,
